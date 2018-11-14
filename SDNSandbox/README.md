@@ -50,6 +50,7 @@ You probably are not going to read the requirements listed below, so here are th
 
 ## Configuration Overview
 
+![alt text](SDNSandbox/res/SDNSandbox.png "Graphic of a fully deployed SDN Sandbox")
 
 SDN Sandbox will automatically create and configure the following:
 
@@ -81,7 +82,7 @@ Please note the following regarding the hardware setup requirements:
 
 * If using more than one host, ensure that all hosts have an **EXTERNAL** Hyper-V Switch that has the same name across all the Hyper-V Servers used in the lab.
 * Windows Server 2016 (Standard or Datacenter) or higher Hyper-V **MUST** already have been installed along with the RSAT-Hyper-V tools.
-* AMD Servers are not supported as they do not support Nested Virtualization.
+* AMD CPUs are not supported as they do not support Hyper-V Nested Virtualization.
 
 * It is recommended that you disable all disconnected network adapters or network adapters that will not be used.
 
@@ -119,13 +120,13 @@ If you wish the environment to have internet access in the Sandbox, create a VMs
 
 [**Windows Admin Center**](https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/understand/windows-admin-center) - The latest version of Windows Admin Center's MSI installer file should be at the root of the *Windows Admin Center* folder under *.\Applications*
 
-[**Remote Server Administration Tools for Windows 10**](https://www.microsoft.com/en-us/download/details.aspx?id=45520) 
+[**Remote Server Administration Tools for Windows 10**](https://www.microsoft.com/en-us/download/details.aspx?id=45520) - 
 Download and place .MSU file specific to the version of Windows Server that you are deploying to the *RSAT* folder under *.\Applications*
 
 
 ## Configuration File (NestedSDN-Config) Reference
 
-The following are a list of settings that are configurable and have been fully tested. You may be able to change some of the other settings and have them work, but they have not been fully testeed.
+The following are a list of settings that are configurable and have been fully tested. You may be able to change some of the other settings and have them work, but they have not been fully tested.
 
 
 | Setting                  |Type| Description                                                                                                                         |  Example                           |
