@@ -78,7 +78,7 @@ Please note the following regarding the hardware setup requirements:
 
 * If using more than one host, ensure that all hosts have an **EXTERNAL** Hyper-V Switch that has the same name across all the Hyper-V Servers used in the lab.
 * Windows Server 2016 (Standard or Datacenter) or higher Hyper-V **MUST** already have been installed along with the RSAT-Hyper-V tools.
-* AMD Servers are not supported as they do not support Nested Virtualization.
+* AMD CPUs are not supported as they do not support Hyper-V Nested Virtualization.
 
 * It is recommended that you disable all disconnected network adapters or network adapters that will not be used.
 
