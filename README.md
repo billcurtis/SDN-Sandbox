@@ -47,6 +47,7 @@ You probably are not going to read the requirements listed below, so here are th
 
 10. Add the Hyper-Converged Cluster *SDNCluster* to *Windows Admin Center* with *Network Controller*: [https://nc01.contosoc.com](https://nc01.contosoc.com) and you're off and ready to go!
 
+![alt text](SDNSandbox/res/AddHCCluster.png "Add Hyper-Converged Cluster Connection")
 
 ## Configuration Overview
 
