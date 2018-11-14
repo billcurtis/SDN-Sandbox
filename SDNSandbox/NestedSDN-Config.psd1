@@ -13,7 +13,7 @@ coreVHDXPath = "C:\2019 VHDS\2019_CORE.vhdx"                        # This value
 consoleVHDXPath = "C:\2019 VHDS\Console.vhdx"                       # This value controls the location of the Windows 10 Console VHDX.  
 
 # SDN Lab Admin Password
-SDNAdminPassword = "Lajolie36"                           # Password for all local and domain accounts. Do not include special characters in the password otherwise some unattended installs may fail.
+SDNAdminPassword = "Password01"                           # Password for all local and domain accounts. Do not include special characters in the password otherwise some unattended installs may fail.
 
 # VM Configuration
 HostVMPath = "V:\"                                       # This value controls the path where the Nested VMs will be stored on all hosts.
@@ -23,13 +23,13 @@ InternalSwitch = "Fabrikam"                               # Name of internal swi
 
 
 # ProductKeys
-COREProductKey =  "6XBNX-4JQGW-QX6QG-74P76-72V67"        # Product Key for Windows Server 2016-2019 Core Datacenter Installation
-GUIProductKey =   "6XBNX-4JQGW-QX6QG-74P76-72V67"        # Product key for Windows Server 2016-2019 (Desktop Experience) Datacenter Installation
-Win10ProductKey = "K6KXM-9DNM4-B4V79-WH2WM-7MJVR"        # Product key for Windows 10 Installation
+COREProductKey =  "xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"        # Product Key for Windows Server 2016-2019 Core Datacenter Installation
+GUIProductKey =   "xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"          # Product key for Windows Server 2016-2019 (Desktop Experience) Datacenter Installation
+Win10ProductKey = "xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"          # Product key for Windows 10 Installation
 
 # SDN Lab Domain
-SDNDomainFQDN = "fabrikam.com"                          # Limit name (not the .com) to 14 characters as the name will be used as the NetBIOS name. 
-DCName = "fabrikamDC"                                   # Name of the domain controller
+SDNDomainFQDN = "contoso.com"                          # Limit name (not the .com) to 14 characters as the name will be used as the NetBIOS name. 
+DCName = "contosodc"                                   # Name of the domain controller
 
 
 # NAT Configuration

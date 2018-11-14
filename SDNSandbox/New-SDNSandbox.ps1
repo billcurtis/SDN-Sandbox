@@ -65,14 +65,14 @@
 #>
 
 
-[CmdletBinding(DefaultParameterSetName="NoParameters")]
+[CmdletBinding(DefaultParameterSetName = "NoParameters")]
 
 param(
-    [Parameter(Mandatory=$true,ParameterSetName="ConfigurationFile")]
+    [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
     [String] $ConfigurationDataFile = '.\NestedSDN-Config.psd1',
-    [Parameter(Mandatory=$false,ParameterSetName="Delete")]
+    [Parameter(Mandatory = $false, ParameterSetName = "Delete")]
     [Bool] $Delete = $false
-    ) 
+) 
 
 #region functions
 
@@ -2092,7 +2092,7 @@ function New-AdminCenterVM {
 
             if ($isAvailable) {
 
-            Install-WindowsFeature -Name RSAT-NetworkController -IncludeAllSubFeature -IncludeManagementTools | Out-Null
+                Install-WindowsFeature -Name RSAT-NetworkController -IncludeAllSubFeature -IncludeManagementTools | Out-Null
 
             }
 
@@ -2787,12 +2787,12 @@ function New-HyperConvergedEnvironment {
 
                     $params = @{
 
-                        sdnswitchName = 'sdnSwitch'
-                        sdnswitchIP = $sdnswitchIP
-                        sdnswitchIPpfx = $sdnswitchIPpfx
-                        sdnswitchVLAN = $SDNConfig.mgmtVLAN
-                        sdnswitchGW = $sdnswitchGW
-                        sdnswitchDNS = $SDNConfig.SDNLABDNS
+                        sdnswitchName        = 'sdnSwitch'
+                        sdnswitchIP          = $sdnswitchIP
+                        sdnswitchIPpfx       = $sdnswitchIPpfx
+                        sdnswitchVLAN        = $SDNConfig.mgmtVLAN
+                        sdnswitchGW          = $sdnswitchGW
+                        sdnswitchDNS         = $SDNConfig.SDNLABDNS
                         sdnswitchteammembers = $sdnswitchteammembers
 
                     }
@@ -2995,95 +2995,95 @@ function Delete-SDNSandbox {
 
     )
 
-$VerbosePreference = "Continue"
+    $VerbosePreference = "Continue"
 
-Write-Verbose "Deleting SDNSandbox"
+    Write-Verbose "Deleting SDNSandbox"
 
-# Get VM Placement
+    # Get VM Placement
 
-if ($SDNConfig.MultipleHyperVHosts) {
+    if ($SDNConfig.MultipleHyperVHosts) {
 
-$VMPlacement = Select-VMHostPlacement -MultipleHyperVHosts $SDNConfig.MultipleHyperVHostNames  -SDNHosts $SDNHosts
+        $VMPlacement = Select-VMHostPlacement -MultipleHyperVHosts $SDNConfig.MultipleHyperVHostNames  -SDNHosts $SDNHosts
 
-}
+    }
 
-elseif (!$SDNConfig.MultipleHyperVHosts) {
+    elseif (!$SDNConfig.MultipleHyperVHosts) {
 
-$VMPlacement = Select-SingleHost -SDNHosts $SDNHosts
+        $VMPlacement = Select-SingleHost -SDNHosts $SDNHosts
 
-}
+    }
 
-foreach ($vm in $VMPlacement) {
+    foreach ($vm in $VMPlacement) {
 
-Invoke-Command -ComputerName $vm.VMHost -Credential $localCred -ArgumentList $vm.SDNHOST -ScriptBlock {
+        Invoke-Command -ComputerName $vm.VMHost -Credential $localCred -ArgumentList $vm.SDNHOST -ScriptBlock {
 
-Import-Module Hyper-V
+            Import-Module Hyper-V
 
-$VerbosePreference = "Continue"
-$vmname = $Using:vm.SDNHOST
+            $VerbosePreference = "Continue"
+            $vmname = $Using:vm.SDNHOST
 
-$sdnvm = Get-VM | Where-Object {$_.Name -eq $vmname }
+            $sdnvm = Get-VM | Where-Object {$_.Name -eq $vmname }
 
-If (!$sdnvm) {Write-Verbose "Could not find $vmname to delete"}
+            If (!$sdnvm) {Write-Verbose "Could not find $vmname to delete"}
 
-if ($sdnvm) {
+            if ($sdnvm) {
 
-Write-Verbose "Shutting down VM: $sdnvm)"
+                Write-Verbose "Shutting down VM: $sdnvm)"
 
-Stop-VM -VM $sdnvm -TurnOff -Force -Confirm:$false 
-$VHDs = $sdnvm | Select-Object VMId  | Get-VHD
-Remove-VM -VM $sdnvm -Force -Confirm:$false 
+                Stop-VM -VM $sdnvm -TurnOff -Force -Confirm:$false 
+                $VHDs = $sdnvm | Select-Object VMId  | Get-VHD
+                Remove-VM -VM $sdnvm -Force -Confirm:$false 
 
-foreach ($VHD in $VHDs) {
+                foreach ($VHD in $VHDs) {
 
-Write-Verbose "Removing $($VHD.Path)"
-Remove-Item -Path $VHD.Path -Force -Confirm:$false
+                    Write-Verbose "Removing $($VHD.Path)"
+                    Remove-Item -Path $VHD.Path -Force -Confirm:$false
 
-}
+                }
 
-}
-
-
-}
+            }
 
 
-}
+        }
+
+
+    }
 
 }
 
 function Add-WACtenants {
 
-param (
+    param (
 
-$SDNLabSystems,
-$SDNConfig,
-$domainCred
+        $SDNLabSystems,
+        $SDNConfig,
+        $domainCred
 
-)
+    )
 
-Write-Verbose "Invoking Command to add Windows Admin Center Tenants"
+    Write-Verbose "Invoking Command to add Windows Admin Center Tenants"
 
- Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
+    Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
 
- $domainCred = $using:domainCred
- $SDNLabSystems = $using:SDNLabSystems
- $SDNConfig = $using:SDNConfig
+        $domainCred = $using:domainCred
+        $SDNLabSystems = $using:SDNLabSystems
+        $SDNConfig = $using:SDNConfig
  
- $VerbosePreference = "Continue"
+        $VerbosePreference = "Continue"
 
-            foreach ($SDNLabSystem in $SDNLabSystems) {
+        foreach ($SDNLabSystem in $SDNLabSystems) {
 
 
             $json = [pscustomobject]@{
 
-            id = "msft.sme.connection-type.server!$SDNLabSystem"
-            name = $SDNLabSystem
-            type = "msft.sme.connection-type.server"
+                id   = "msft.sme.connection-type.server!$SDNLabSystem"
+                name = $SDNLabSystem
+                type = "msft.sme.connection-type.server"
 
             } | ConvertTo-Json
 
 
-$payload = @"
+            $payload = @"
 [
 $json
 ]
@@ -3091,13 +3091,13 @@ $json
 
             if ($SDNConfig.WACport -eq "443" -or !$SDNConfig.WACport) {
 
-            $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN)/api/connections"
+                $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN)/api/connections"
 
             }
 
             else {
 
-            $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN):$($SDNConfig.WACport)/api/connections"
+                $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN):$($SDNConfig.WACport)/api/connections"
 
             }
 
@@ -3106,71 +3106,71 @@ $json
 
             $param = @{
 
-            Uri = $uri
-            Method = 'Put'
-            Body = $payload
-            ContentType = $content
-            Credential = $domainCred
+                Uri         = $uri
+                Method      = 'Put'
+                Body        = $payload
+                ContentType = $content
+                Credential  = $domainCred
 
             }
 
             Invoke-RestMethod @param -UseBasicParsing -DisableKeepAlive  | Out-Null
 
    
-            }          
+        }          
 
-}
+    }
 
 }
 
 function New-SDNS2DCluster {
 
-param (
+    param (
         $SDNConfig,
         $domainCred,
         $SDNClusterNode
 
-        )
+    )
 
-        $VerbosePreference = "Continue" 
+    $VerbosePreference = "Continue" 
                 
-        Invoke-Command -ComputerName $SDNClusterNode -ArgumentList $SDNConfig, $domainCred -Credential $domainCred -ScriptBlock {
+    Invoke-Command -ComputerName $SDNClusterNode -ArgumentList $SDNConfig, $domainCred -Credential $domainCred -ScriptBlock {
          
-         $SDNConfig = $args[0]
-         $domainCred = $args[1]
-         $VerbosePreference = "Continue"
-         $ErrorActionPreference = "Stop"
+        $SDNConfig = $args[0]
+        $domainCred = $args[1]
+        $VerbosePreference = "Continue"
+        $ErrorActionPreference = "Stop"
 
 
         Register-PSSessionConfiguration -Name microsoft.SDNNestedS2D -RunAsCredential $domainCred -MaximumReceivedDataSizePerCommandMB 1000 -MaximumReceivedObjectSizeMB 1000 | Out-Null
 
         Invoke-Command -ComputerName $Using:SDNClusterNode -ArgumentList $SDNConfig, $domainCred -Credential $domainCred -ConfigurationName microsoft.SDNNestedS2D -ScriptBlock {
 
-         $SDNConfig = $args[0]
-         $domainCred = $args[1]
+            $SDNConfig = $args[0]
+            $domainCred = $args[1]
 
-        # Create S2D Cluster
+            # Create S2D Cluster
 
-        $SDNConfig = $args[0]
-        $SDNHosts = @("SDNHOST1", "SDNHOST2", "SDNHOST3")
+            $SDNConfig = $args[0]
+            $SDNHosts = @("SDNHOST1", "SDNHOST2", "SDNHOST3")
 
-        Write-Verbose "Creating Cluster: SDNCLUSTER"
+            Write-Verbose "Creating Cluster: SDNCLUSTER"
 
-        $VerbosePreference = "SilentlyContinue"
+            $VerbosePreference = "SilentlyContinue"
 
-        Import-Module FailoverClusters 
+            Import-Module FailoverClusters 
 
-        $VerbosePreference = "Continue"
+            $VerbosePreference = "Continue"
 
-        $ClusterIP = ($SDNConfig.MGMTSubnet.TrimEnd("0/24")) + "253"
-        $ClusterName = "SDNCLUSTER"
+            $ClusterIP = ($SDNConfig.MGMTSubnet.TrimEnd("0/24")) + "253"
+            $ClusterName = "SDNCLUSTER"
 
-        # Create Cluster
+            # Create Cluster
 
-        New-Cluster -Name $ClusterName -Node $SDNHosts -StaticAddress $ClusterIP `
-            -NoStorage -WarningAction SilentlyContinue | Out-Null
+            New-Cluster -Name $ClusterName -Node $SDNHosts -StaticAddress $ClusterIP `
+                -NoStorage -WarningAction SilentlyContinue | Out-Null
 
-        # Invoke Command to enable S2D on SDNCluster        
+            # Invoke Command to enable S2D on SDNCluster        
 
             Enable-ClusterS2D -CacheState Disabled -AutoConfig:0 -SkipEligibilityChecks -Confirm:$false  | Out-Null
 
@@ -3204,16 +3204,16 @@ param (
             Get-storagesubsystem clus* | set-storagehealthsetting -name “System.Storage.PhysicalDisk.AutoReplace.Enabled” -value “False”
             Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\spaceport\Parameters -Name HwTimeout -Value 0x00007530
 
-            }
+        }
 
-        } 
-
-
-        Invoke-Command -ComputerName Console -Credential $domainCred -ScriptBlock {
+    } 
 
 
-         $VerbosePreference = "Continue"
-         $ErrorActionPreference = "Stop"
+    Invoke-Command -ComputerName Console -Credential $domainCred -ScriptBlock {
+
+
+        $VerbosePreference = "Continue"
+        $ErrorActionPreference = "Stop"
        
         # Set Kerberos Delegation for Admin Center
 
@@ -3285,7 +3285,7 @@ param (
         }
 
 
-        }
+    }
 
 
 
@@ -3309,27 +3309,27 @@ $localCred = new-object -typename System.Management.Automation.PSCredential `
 
 $domainCred = new-object -typename System.Management.Automation.PSCredential `
     -argumentlist (($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\Administrator"), `
-     (ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
+(ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
 
 $NCAdminCred = new-object -typename System.Management.Automation.PSCredential `
     -argumentlist (($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\NCAdmin"), `
-     (ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
+(ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
 
 $NCClientCred = new-object -typename System.Management.Automation.PSCredential `
     -argumentlist (($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\NCClient"), `
-     (ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
+(ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
 
 
 # Delete configuration if specified
 
 if ($Delete) {
 
-$VerbosePreference = "Continue"
+    $VerbosePreference = "Continue"
 
-Delete-SDNSandbox  -localCred $localCred -SDNConfig $SDNConfig
+    Delete-SDNSandbox  -localCred $localCred -SDNConfig $SDNConfig
 
-Write-Verbose "Successfully Removed the SDN Sandbox"
-exit
+    Write-Verbose "Successfully Removed the SDN Sandbox"
+    exit
 
 }
     
@@ -3369,7 +3369,7 @@ if (!$SDNConfig.MultipleHyperVHosts) {
 
     $params = @{
 
-        guiVHDXPath = $guiVHDXPath
+        guiVHDXPath  = $guiVHDXPath
         coreVHDXPath = $coreVHDXPath
     
     }
@@ -3385,7 +3385,7 @@ if (!$SDNConfig.MultipleHyperVHosts) {
     $params = @{
 
         pswitchname = $InternalSwitch
-        SDNConfig = $SDNConfig
+        SDNConfig   = $SDNConfig
     
     }
 
@@ -3398,7 +3398,7 @@ if (!$SDNConfig.MultipleHyperVHosts) {
     $params = @{
 
         guiVHDXPath = $guiVHDXPath
-        HostVMPath = $HostVMPath
+        HostVMPath  = $HostVMPath
     
     }
 
@@ -3410,7 +3410,7 @@ if (!$SDNConfig.MultipleHyperVHosts) {
     $params = @{
 
         coreVHDXPath = $coreVHDXPath
-        HostVMPath = $HostVMPath
+        HostVMPath   = $HostVMPath
     
     }
 
@@ -3419,7 +3419,7 @@ if (!$SDNConfig.MultipleHyperVHosts) {
     $params = @{
 
         consoleVHDXPath = $consoleVHDXPath
-        HostVMPath = $HostVMPath
+        HostVMPath      = $HostVMPath
     
     }
 
@@ -3652,7 +3652,7 @@ Write-Verbose "Waiting for VMs to restart..."
 $params = @{
 
     VMPlacement = $VMPlacement
-    localcred = $localCred
+    localcred   = $localCred
 
 }
 
@@ -3715,9 +3715,9 @@ New-HyperConvergedEnvironment @params
 
 $params = @{
 
-SDNConfig = $SDNConfig
-DomainCred = $domainCred
-SDNClusterNode = 'SDNHOST2'
+    SDNConfig      = $SDNConfig
+    DomainCred     = $domainCred
+    SDNClusterNode = 'SDNHOST2'
 
 }
 
