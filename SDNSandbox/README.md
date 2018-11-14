@@ -41,7 +41,11 @@ You probably are not going to read the requirements listed below, so here are th
 
 7. It should take a little over an hour to deploy (if using SSD).
 
-8. Using RDP, log into the Console
+8. Using RDP, log into the Console with your creds: User: Contoso\Administrator Password: Password01
+
+9. Launch the link to Windows Admin Center
+
+10. Add the Hyper-Converged Cluster *SDNCluster* to *Windows Admin Center* with *Network Controller*: [https://nc01.contosoc.com](https://nc01.contosoc.com) and you're off and ready to go!
 
 
 ## Configuration Overview
