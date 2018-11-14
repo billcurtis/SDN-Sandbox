@@ -46,6 +46,7 @@ You probably are not going to read the requirements listed below, so here are th
 
 ## Configuration Overview
 
+![alt text](SDNSandbox/res/SDNSandbox.png "Graphic of a fully deployed SDN Sandbox")
 
 SDN Sandbox will automatically create and configure the following:
 
