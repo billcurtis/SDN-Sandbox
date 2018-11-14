@@ -120,7 +120,7 @@ If you wish the environment to have internet access in the Sandbox, create a VMs
 
 [**Windows Admin Center**](https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/understand/windows-admin-center) - The latest version of Windows Admin Center's MSI installer file should be at the root of the *Windows Admin Center* folder under *.\Applications*
 
-[**Remote Server Administration Tools for Windows 10**](https://www.microsoft.com/en-us/download/details.aspx?id=45520) 
+[**Remote Server Administration Tools for Windows 10**](https://www.microsoft.com/en-us/download/details.aspx?id=45520) - 
 Download and place .MSU file specific to the version of Windows Server that you are deploying to the *RSAT* folder under *.\Applications*
 
 
