@@ -122,7 +122,7 @@ Download and place .MSU file specific to the version of Windows Server that you 
 
 ## Configuration File (NestedSDN-Config) Reference
 
-The following are a list of settings that are configurable and have been fully tested. You may be able to change some of the other settings and have them work, but they have not been fully testeed.
+The following are a list of settings that are configurable and have been fully tested. You may be able to change some of the other settings and have them work, but they have not been fully tested.
 
 
 | Setting                  |Type| Description                                                                                                                         |  Example                           |
