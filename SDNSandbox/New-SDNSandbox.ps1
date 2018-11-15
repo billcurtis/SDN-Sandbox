@@ -2330,7 +2330,7 @@ function New-ConsoleVM {
                             <DhcpEnabled>false</DhcpEnabled>
                         </Ipv4Settings>
                         <UnicastIpAddresses>
-                            <IpAddress wcm:action="add" wcm:keyValue="1">192.168.1.8/24</IpAddress>
+                            <IpAddress wcm:action="add" wcm:keyValue="1">$ConsoleIP</IpAddress>
                         </UnicastIpAddresses>
                     </Interface>
                 </Interfaces>

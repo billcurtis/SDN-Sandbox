@@ -1,8 +1,32 @@
-﻿$SDNConfig = Import-PowerShellDataFile  'C:\SDNEXPRESS (Nested Version)\NestedSDN-Config.psd1'
+﻿
+# Version 1.0
+
+<#
+.SYNOPSIS 
+
+    This script create two Windows Server (Desktop Experience) VHD files for TenantVM1 and TenantVM2, injects a unattend.xml
+    and places them in SDNCluster's Storage.
+
+    After running this script, follow the directions in the README.md file for this scenario.
+#>
+
+
+[CmdletBinding(DefaultParameterSetName = "NoParameters")]
+
+param(
+
+    [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\NestedSDN-Config.psd1'
+
+)
+
 
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "Continue"
 
+# Load in the configuration file.
+$SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
+if (!$SDNConfig) {Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file."}
 
 # Set Credential Object
 $domainCred = new-object -typename System.Management.Automation.PSCredential `
@@ -16,52 +40,93 @@ $fqdn = $SDNConfig.SDNDomainFQDN
 Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
 
-$ErrorActionPreference = "Stop"
-$VerbosePreference = "Continue"
+    $ErrorActionPreference = "Stop"
+    $VerbosePreference = "Continue"
 
 
+    # Create TENANTVM1 and TENANTVM2 VHDX files
 
-# Create TENANTVM1 and TENANTVM2
+    Write-Verbose "Copying Over VHDX files for TenantVMs. This can take some time..."
 
-Write-Verbose "Copying Over VHDX files for TenantVMs. This can take some time..."
+    $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object {$_.Name -match "Windows Server 2019"}
 
-$OSver = Get-WmiObject Win32_OperatingSystem | Where-Object {$_.Name -match "Windows Server 2019"}
+    If ($OSVer) {$csvfolder = "S2D_vDISK1"}
+    else {$csvfolder = "Volume1"}
 
-If ($OSVer) {$csvfolder = "S2D_vDISK1"}
-else {$csvfolder = "Volume1"}
-
-$TenantVMs = @("TenantVM1","TenantVM2")
-
-
-foreach ($TenantVM in $TenantVMs) {
-
-$Password = $using:SDNConfig.SDNAdminPassword
-$ProductKey = $using:SDNConfig.GUIProductKey
-$Domain = $using:fqdn
-$VMName = $TenantVM
-$Gateway = "192.168.33.1"
+    $TenantVMs = @("TenantVM1", "TenantVM2")
 
 
-# Copy over GUI VHDX
+    foreach ($TenantVM in $TenantVMs) {
 
-Write-Verbose "Copying GUI.VHDX for TenantVM..."
-$tenantpath = New-Item -Path C:\ClusterStorage\$csvfolder -Name $TenantVM -ItemType Directory -Force
+        $Password = $using:SDNConfig.SDNAdminPassword
+        $ProductKey = $using:SDNConfig.GUIProductKey
+        $Domain = $using:fqdn
+        $VMName = $TenantVM
 
-Copy-Item -Path '\\console\C$\VHDs\GUI.vhdx' -Destination $tenantpath.FullName -Force
+        Write-Verbose "Domain = $Domain"
+        Write-Verbose "VMName = $VMName"
 
-# Inject Answer File
-Write-Verbose "Injecting Answer File for TenantVM $VMName..."
-$MountPath = New-Item -Path D:\ -Name $TenantVM -ItemType Directory -Force
-$ImagePath = "\\sdncluster\ClusterStorage`$\$csvfolder\$VMName\GUI.vhdx"
-Mount-WindowsImage -ImagePath $ImagePath -Index 1 -Path $MountPath.FullName | Out-Null
+        # Copy over GUI VHDX
 
-# Create Panther Folder
-Write-Verbose "Creating Panther folder.."
-$pathPanther = New-Item -Path (($MountPath.FullName) + ("\Windows\Panther")) -ItemType Directory -Force
+        Write-Verbose "Copying GUI.VHDX for TenantVM..."
 
-# Generate Panther Folder
+        $params = @{
 
-$unattend = @"
+            Path     = "C:\ClusterStorage\$csvfolder"
+            Name     = $TenantVM
+            ItemType = 'Directory'
+
+        }
+
+        $tenantpath = New-Item @params -Force
+
+        Copy-Item -Path '\\console\C$\VHDs\GUI.vhdx' -Destination $tenantpath.FullName -Force
+
+        # Inject Answer File
+        Write-Verbose "Injecting Answer File for TenantVM $VMName..."
+
+        $params = @{
+
+            Path     = 'D:\'
+            Name     = $TenantVM
+            ItemType = 'Directory'
+
+        }
+
+
+        $MountPath = New-Item @params -Force
+
+
+        $ImagePath = "\\sdncluster\ClusterStorage`$\$csvfolder\$VMName\GUI.vhdx"
+
+        $params = @{
+
+            ImagePath = $ImagePath
+            Index     = 1
+            Path      = $MountPath.FullName
+
+        }
+
+        $VerbosePreference = "SilentlyContinue"
+        Mount-WindowsImage @params | Out-Null
+        $VerbosePreference = "Continue"
+
+        # Create Panther Folder
+        Write-Verbose "Creating Panther folder.."
+
+        $params = @{
+
+            Path     = (($MountPath.FullName) + ("\Windows\Panther"))
+            ItemType = 'Directory'
+
+        }
+
+
+        $pathPanther = New-Item @params -Force
+
+        # Generate Panther Folder
+
+        $unattend = @"
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
     <settings pass="specialize">
@@ -114,11 +179,22 @@ $unattend = @"
 </unattend>
 "@
 
-Set-Content -Value $unattend -Path $(($MountPath.FullName) + ("\Windows\Panther\Unattend.xml")) -Force
-Write-Verbose "Commiting and Dismounting Image..."
-Dismount-WindowsImage -Path $MountPath.FullName -Save | Out-Null
+
+        $params = @{
+
+            Value = $unattend
+            Path  = $(($MountPath.FullName) + ("\Windows\Panther\Unattend.xml"))
+
+        }
 
 
-}
+        Set-Content @params -Force
+
+        # Dismount Image with Commit
+
+        Write-Verbose "Committing and Dismounting Image..."
+        Dismount-WindowsImage -Path $MountPath.FullName -Save | Out-Null
+
+    }
 
 }

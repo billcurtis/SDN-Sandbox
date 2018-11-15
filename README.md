@@ -17,9 +17,11 @@ The ``SCRIPTS\Scenarios`` folder in this solution will be updated quite frequent
 
 ## Quick Start (TLDR)
 
-You probably are not going to read the requirements listed below, so here are the steps to get this up and running on a **single host** FAST:
+You probably are not going to read the requirements listed below, so here are the steps to get SDN Sandbox up and running on a **single host** :
 
 1. Download and unzip this solution to a drive on a Intel based System with at least 64gb of RAM, 2016 (or higher) Hyper-V Installed, and , optionally, a External Switch attached to a network that can route to the Internet and provides DHCP (Getting Proxy to work is on my list).
+
+> **Note** - It is best to use Windows Server **Desktop Experience** on a single machine as it is easier to RDP into the **Console** VM.
 
 2. Create Sysprepped VHDX files for the 2016 Datacenter GUI and CORE installation options. Ensure that the 05-2018 Updates have been applied to both VHDX files. Windows 2019 Datacenter will work fine once the SDDC components (S2D\SDN) are unlocked later next year.
 
@@ -27,6 +29,8 @@ You probably are not going to read the requirements listed below, so here are th
 
 4. Edit the .PSD1 configuration file (do not rename it) to set:
     
+    * The Password needs to be the same as the local administrator password on your physical Hyper-V Host
+
     * Product Keys for Datacenter, and the product key for Windows 10.  
       
     >**Warning!** The Configuration file will be copied to the console drive during install. **The product keys will be in plain text and not deleted!**     
@@ -128,6 +132,8 @@ Download and place .MSU file specific to the version of Windows Server that you 
 ## Configuration File (NestedSDN-Config) Reference
 
 The following are a list of settings that are configurable and have been fully tested. You may be able to change some of the other settings and have them work, but they have not been fully tested.
+
+>**Note:** Changing the IP Addresses for Management Network (*default of 192.168.1.0/24*) has been succesfully tested.
 
 
 | Setting                  |Type| Description                                                                                                                         |  Example                           |
