@@ -1814,12 +1814,12 @@ function New-RouterVM {
 
                 Add-BgpPeer @params -PassThru
 
-                $params.Name = GW01
+                $params.Name = 'GW01'
                 $params.PeerIPAddress = $GW01IP
 
                 Add-BgpPeer @params -PassThru
 
-                $params.Name = $GW02IP
+                $params.Name = 'GW02'
                 $params.PeerIPAddress = $GW02IP
 
                 Add-BgpPeer @params -PassThru    
@@ -2968,20 +2968,6 @@ function New-SDNEnvironment {
 
         } -Authentication Credssp
 
-        # Set Constrained Delegation for NC/MUX/GW Virtual Machines for Windows Admin Center
-
-        $SDNvms = ("NC01", "MUX01", "GW01", "GW02")
-     
-        foreach ($SDNvm in $SDNvms) {
-
-            Write-Verbose "Setting Delegation for $SDNvm"
-            $gateway = "AdminCenter"
-            $node = $SDNvm
-            $gatewayObject = Get-ADComputer -Identity $gateway
-            $nodeObject = Get-ADComputer -Identity $node
-            Set-ADComputer -Identity $nodeObject -PrincipalsAllowedToDelegateToAccount $gatewayObject
-
-        }
 
     } 
 
@@ -3056,6 +3042,7 @@ function Add-WACtenants {
 
     )
 
+    $VerbosePreference = "Continue"
     Write-Verbose "Invoking Command to add Windows Admin Center Tenants"
 
     Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
@@ -3115,6 +3102,22 @@ $json
                 Invoke-RestMethod @param -UseBasicParsing -DisableKeepAlive  | Out-Null
 
    
+            }
+
+
+            # Set Constrained Delegation for NC/MUX/GW Virtual Machines for Windows Admin Center
+
+            $SDNvms = ("NC01", "MUX01", "GW01", "GW02")
+     
+            foreach ($SDNvm in $SDNvms) {
+
+                Write-Verbose "Setting Delegation for $SDNvm"
+                $gateway = "AdminCenter"
+                $node = $SDNvm
+                $gatewayObject = Get-ADComputer -Identity $gateway
+                $nodeObject = Get-ADComputer -Identity $node
+                Set-ADComputer -Identity $nodeObject -PrincipalsAllowedToDelegateToAccount $gatewayObject 
+
             }
         
         }          
@@ -3222,7 +3225,7 @@ function New-SDNS2DCluster {
        
             # Set Kerberos Delegation for Admin Center
 
-            $SDNHosts = ("SDNCLUSTER", "SDNHOST1", "SDNHOST2", "SDNHOST3", "CONSOLE")
+            $SDNHosts = ("SDNHOST1", "SDNHOST2", "SDNHOST3", "CONSOLE")
      
             foreach ($SDNHost in $SDNHosts) {
 
@@ -3786,8 +3789,6 @@ Add-WACtenants @params
 $params.domainCred = $NCAdminCred
 
 Add-WACtenants @params
-
-
 
 
 Write-Verbose "`nSuccessfully deployed SDNSandbox"
