@@ -680,7 +680,7 @@ function New-DataDrive {
 
     foreach ($SDNVM in $VMPlacement) {
 
-        Invoke-Command -ComputerName $SDNVM.VMHost -Credential $localCred -ScriptBlock {
+        Invoke-Command -ComputerName $SDNVM.VMHost  -ScriptBlock {
 
             $VerbosePreference = "Continue"
             Write-Verbose "Onlining, partitioning, and formatting Data Drive on $($Using:SDNVM.SDNHOST)"
@@ -939,7 +939,7 @@ function Set-SDNMGMT {
 
     )
 
-    Invoke-Command -ComputerName SDNMGMT -Credential $localCred -ScriptBlock {
+    Invoke-Command -ComputerName SDNMGMT -Credential $localCred  -ScriptBlock {
 
         # Creds
 
@@ -987,8 +987,7 @@ function Set-SDNMGMT {
             $VerbosePreference = "Continue"
             Write-Verbose "Creating VM Switch on $env:COMPUTERNAME"
 
-            New-VMSwitch -ComputerName localhost -AllowManagementOS $true -Name "vSwitch-Fabric" `
-                -NetAdapterName FABRIC | Out-Null
+            New-VMSwitch  -AllowManagementOS $true -Name "vSwitch-Fabric" -NetAdapterName FABRIC | Out-Null
 
             # Configure NAT on SDNMGMT
 
@@ -2692,7 +2691,9 @@ function New-HyperConvergedEnvironment {
 
         foreach ($SDNHost in $SDNHosts) {
 
-            Invoke-Command -ComputerName $SDNHost -ArgumentList $SDNConfig -ScriptBlock {
+            Write-Verbose "Invoking Command on $SDNHost"
+
+            Invoke-Command -ComputerName $SDNHost -ArgumentList $SDNConfig -Credential $using:domainCred -ScriptBlock {
 
                 function New-sdnSETSwitch {
 
@@ -2801,10 +2802,10 @@ function New-HyperConvergedEnvironment {
 
                 }
 
-            }
+            } 
 
             Write-Verbose "Rebooting SDN Host $SDNHost"
-            Restart-Computer $SDNHost -Force -Confirm:$false
+            Restart-Computer $SDNHost -Force -Confirm:$false -Credential $using:domainCred
 
         }
 
@@ -2813,7 +2814,7 @@ function New-HyperConvergedEnvironment {
         foreach ($SDNHost in $SDNHosts) {
 
             Write-Verbose "Checking to see if $SDNHOST is up and online"
-            while ((Invoke-Command -ComputerName $SDNHost -Credential $domainCred {"Test"} `
+            while ((Invoke-Command -ComputerName $SDNHost -Credential $using:domainCred {"Test"} `
                         -ea SilentlyContinue) -ne "Test") {Start-Sleep -Seconds 1}
 
         }
@@ -2990,7 +2991,7 @@ function Delete-SDNSandbox {
 
     param (
 
-        $localCred,
+        $VMPlacement,
         $SDNConfig
 
     )
@@ -2999,28 +3000,22 @@ function Delete-SDNSandbox {
 
     Write-Verbose "Deleting SDNSandbox"
 
-    # Get VM Placement
-
-    if ($SDNConfig.MultipleHyperVHosts) {
-
-        $VMPlacement = Select-VMHostPlacement -MultipleHyperVHosts $SDNConfig.MultipleHyperVHostNames  -SDNHosts $SDNHosts
-
-    }
-
-    elseif (!$SDNConfig.MultipleHyperVHosts) {
-
-        $VMPlacement = Select-SingleHost -SDNHosts $SDNHosts
-
-    }
-
     foreach ($vm in $VMPlacement) {
+         
+        $SDNHostName = $vm.vmHost
+        $VMName = $vm.SDNHOST
+        #if ($SDNHostName -match $env:COMPUTERNAME) {$SDNHostName = 'localhost'}
 
-        Invoke-Command -ComputerName $vm.VMHost -Credential $localCred -ArgumentList $vm.SDNHOST -ScriptBlock {
+        Write-Verbose $SDNHostName
+
+        Invoke-Command -ComputerName $SDNHostName -ArgumentList $VMName -ScriptBlock {
+
+            $VerbosePreference = "SilentlyContinue"
 
             Import-Module Hyper-V
 
             $VerbosePreference = "Continue"
-            $vmname = $Using:vm.SDNHOST
+            $vmname = $args[0]
 
             $sdnvm = Get-VM | Where-Object {$_.Name -eq $vmname }
 
@@ -3126,6 +3121,7 @@ $json
 function New-SDNS2DCluster {
 
     param (
+
         $SDNConfig,
         $domainCred,
         $SDNClusterNode
@@ -3201,8 +3197,10 @@ function New-SDNS2DCluster {
 
             # Set Virtual Environment Optimizations
 
+            $VerbosePreference = "SilentlyContinue"
             Get-storagesubsystem clus* | set-storagehealthsetting -name “System.Storage.PhysicalDisk.AutoReplace.Enabled” -value “False”
             Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\spaceport\Parameters -Name HwTimeout -Value 0x00007530
+            $VerbosePreference = "Continue"
 
         }
 
@@ -3211,83 +3209,85 @@ function New-SDNS2DCluster {
 
     Invoke-Command -ComputerName Console -Credential $domainCred -ScriptBlock {
 
+        Invoke-Command -ComputerName localhost -Credential $using:domainCred -ScriptBlock {
 
-        $VerbosePreference = "Continue"
-        $ErrorActionPreference = "Stop"
+
+            $VerbosePreference = "Continue"
+            $ErrorActionPreference = "Stop"
        
-        # Set Kerberos Delegation for Admin Center
+            # Set Kerberos Delegation for Admin Center
 
-        $SDNHosts = ("SDNCLUSTER", "SDNHOST1", "SDNHOST2", "SDNHOST3", "CONSOLE")
+            $SDNHosts = ("SDNCLUSTER", "SDNHOST1", "SDNHOST2", "SDNHOST3", "CONSOLE")
      
-        foreach ($SDNHost in $SDNHosts) {
+            foreach ($SDNHost in $SDNHosts) {
 
-            Write-Verbose "Setting Delegation for $SDNHOST"
-            $gateway = "AdminCenter"
-            $node = $SDNHost
-            $gatewayObject = Get-ADComputer -Identity $gateway
-            $nodeObject = Get-ADComputer -Identity $node
-            Set-ADComputer -Identity $nodeObject -PrincipalsAllowedToDelegateToAccount $gatewayObject
+                Write-Verbose "Setting Delegation for $SDNHOST"
+                $gateway = "AdminCenter"
+                $node = $SDNHost
+                $gatewayObject = Get-ADComputer -Identity $gateway
+                $nodeObject = Get-ADComputer -Identity $node
+                Set-ADComputer -Identity $nodeObject -PrincipalsAllowedToDelegateToAccount $gatewayObject
 
-        }
-        # Set Default Path's in Hyper-V on the SDN Hosts
+            }
+            # Set Default Path's in Hyper-V on the SDN Hosts
 
-        $ClusterHosts = ("SDNHOST1", "SDNHOST2", "SDNHOST3")
+            $ClusterHosts = ("SDNHOST1", "SDNHOST2", "SDNHOST3")
             
-        foreach ($SDNHost in $ClusterHosts) {
+            foreach ($SDNHost in $ClusterHosts) {
 
-            Write-Verbose "Setting VM Path on $SDNHost"
+                Write-Verbose "Setting VM Path on $SDNHost"
          
-            Invoke-Command -ComputerName $SDNHost -ScriptBlock {
+                Invoke-Command -ComputerName $SDNHost -ScriptBlock {
 
-                $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object {$_.Name -match "Windows Server 2019"}
+                    $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object {$_.Name -match "Windows Server 2019"}
 
-                if ($OSVer) {$csvfolder = "S2D_vDISK1"}
-                else {$csvfolder = "Volume1"}
+                    if ($OSVer) {$csvfolder = "S2D_vDISK1"}
+                    else {$csvfolder = "Volume1"}
 
-                # Install SDDC if not installed
+                    # Install SDDC if not installed
 
-                $SDDC = Get-ClusterResource | Where-Object {$_.Name -eq "SDDC Management"}
-                if (!$SDDC) {
+                    $SDDC = Get-ClusterResource | Where-Object {$_.Name -eq "SDDC Management"}
+                    if (!$SDDC) {
 
-                    Write-Verbose "Attempting to add the SDDC Management Resource"
+                        Write-Verbose "Attempting to add the SDDC Management Resource"
 
-                    $params = @{
+                        $params = @{
 
-                        Name        = 'SDDC Management' 
-                        dll         = "$env:SystemRoot\Cluster\sddcres.dll"
-                        DisplayName = 'SDDC Management'
-                        ErrorAction = 'Ignore'
+                            Name        = 'SDDC Management' 
+                            dll         = "$env:SystemRoot\Cluster\sddcres.dll"
+                            DisplayName = 'SDDC Management'
+                            ErrorAction = 'Ignore'
+
+                        }
+
+                        Add-ClusterResourceType @params | Out-Null
+                    }
+
+                    # Move volume to get around mount point issues
+
+                    $VerbosePreference = "Continue"
+                    Write-Verbose "Moving disk to $env:COMPUTERNAME"
+                    Get-ClusterSharedVolume | Move-ClusterSharedVolume -Node $env:COMPUTERNAME | Out-Null
+
+                    $testpath = $false
+                    While (!$testpath) {
+
+                        Write-Verbose "Testing to see if CSV is online and functional..."
+                        Start-Sleep -seconds 10
+
+                        $testpath = Test-Path "C:\ClusterStorage\$csvfolder"
 
                     }
 
-                    Add-ClusterResourceType @params | Out-Null
-                }
-
-                # Move volume to get around mount point issues
-
-                $VerbosePreference = "Continue"
-                Write-Verbose "Moving disk to $env:COMPUTERNAME"
-                Get-ClusterSharedVolume | Move-ClusterSharedVolume -Node $env:COMPUTERNAME | Out-Null
-
-                $testpath = $false
-                While (!$testpath) {
-
-                    Write-Verbose "Testing to see if CSV is online and functional..."
-                    Start-Sleep -seconds 10
-
-                    $testpath = Test-Path "C:\ClusterStorage\$csvfolder"
+                    Set-VMHost -VirtualHardDiskPath "C:\ClusterStorage\$csvfolder" -VirtualMachinePath "C:\ClusterStorage\$csvfolder"
 
                 }
-
-                Set-VMHost -VirtualHardDiskPath "C:\ClusterStorage\$csvfolder" -VirtualMachinePath "C:\ClusterStorage\$csvfolder"
-
             }
+
+
         }
 
-
     }
-
-
 
 }
 
@@ -3319,14 +3319,29 @@ $NCClientCred = new-object -typename System.Management.Automation.PSCredential `
     -argumentlist (($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\NCClient"), `
 (ConvertTo-SecureString $SDNConfig.SDNAdminPassword  -AsPlainText -Force)
 
+# Define SDN host Names. Please do not change names as these names are hardcoded in the setup.
+$SDNHosts = @("SDNMGMT", "SDNHOST1", "SDNHOST2", "SDNHOST3")
+
 
 # Delete configuration if specified
 
 if ($Delete) {
 
-    $VerbosePreference = "Continue"
+    if ($SDNConfig.MultipleHyperVHosts) {
 
-    Delete-SDNSandbox  -localCred $localCred -SDNConfig $SDNConfig
+        $params = @{
+
+            MultipleHyperVHosts = $SDNConfig.MultipleHyperVHostNames
+            SDNHosts            = $SDNHosts     
+
+        }
+
+        $VMPlacement = Select-VMHostPlacement @params
+
+    }     
+    else { $VMPlacement = Select-SingleHost -SDNHosts $SDNHosts }
+
+    Delete-SDNSandbox -SDNConfig $SDNConfig -VMPlacement $VMPlacement
 
     Write-Verbose "Successfully Removed the SDN Sandbox"
     exit
@@ -3345,17 +3360,23 @@ $natDNS = $SDNConfig.natDNS
 $natSubnet = $SDNConfig.natSubnet
 $natExternalVMSwitchName = $SDNConfig.natExternalVMSwitchName
 $natVLANID = $SDNConfig.natVLANID
-$natConfigure = $SDNConfig.natConfigure    
-    
-# Define SDN host Names. Please do not change names as these names are hardcoded in the setup.
+$natConfigure = $SDNConfig.natConfigure   
 
-$SDNHosts = @("SDNMGMT", "SDNHOST1", "SDNHOST2", "SDNHOST3")
 
 $VerbosePreference = "SilentlyContinue" 
 Import-Module Hyper-V 
 $VerbosePreference = "Continue"
 $ErrorActionPreference = "Stop"
     
+
+# Enable PSRemoting
+
+Write-Verbose "Enabling PS Remoting on client..."
+$VerbosePreference = "SilentlyContinue"
+Enable-PSRemoting
+Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force
+$VerbosePreference = "Continue"
+
 # Verify Applications
 
 Resolve-Applications -SDNConfig $SDNConfig
@@ -3687,7 +3708,7 @@ if ($natConfigure) {
     
 # Provision SDNMGMT VMs (DC, Router, AdminCenter, and console)
 
-Write-Host  "Configuring Management VM" 
+Write-Verbose  "Configuring Management VM" 
 
 $params = @{
 
