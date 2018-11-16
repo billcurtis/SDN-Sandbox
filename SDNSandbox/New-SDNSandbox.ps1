@@ -3059,59 +3059,64 @@ function Add-WACtenants {
     Write-Verbose "Invoking Command to add Windows Admin Center Tenants"
 
     Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
-
-        $domainCred = $using:domainCred
-        $SDNLabSystems = $using:SDNLabSystems
-        $SDNConfig = $using:SDNConfig
- 
         $VerbosePreference = "Continue"
 
-        foreach ($SDNLabSystem in $SDNLabSystems) {
+        Invoke-Command -ComputerName AdminCenter -Credential $using:domainCred -ScriptBlock {
+
+            $domainCred = $using:domainCred
+            $SDNLabSystems = $using:SDNLabSystems
+            $SDNConfig = $using:SDNConfig
+ 
+            $VerbosePreference = "Continue"
+
+            foreach ($SDNLabSystem in $SDNLabSystems) {
 
 
-            $json = [pscustomobject]@{
+                $json = [pscustomobject]@{
 
-                id   = "msft.sme.connection-type.server!$SDNLabSystem"
-                name = $SDNLabSystem
-                type = "msft.sme.connection-type.server"
+                    id   = "msft.sme.connection-type.server!$SDNLabSystem"
+                    name = $SDNLabSystem
+                    type = "msft.sme.connection-type.server"
 
-            } | ConvertTo-Json
+                } | ConvertTo-Json
 
 
-            $payload = @"
+                $payload = @"
 [
 $json
 ]
 "@
 
-            if ($SDNConfig.WACport -eq "443" -or !$SDNConfig.WACport) {
+                if ($SDNConfig.WACport -eq "443" -or !$SDNConfig.WACport) {
 
-                $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN)/api/connections"
+                    $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN)/api/connections"
 
-            }
+                }
 
-            else {
+                else {
 
-                $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN):$($SDNConfig.WACport)/api/connections"
+                    $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN):$($SDNConfig.WACport)/api/connections"
 
-            }
+                }
 
-            Write-Verbose "Adding Host: $SDNLabSystem"
+                Write-Verbose "Adding Host: $SDNLabSystem"
 
 
-            $param = @{
+                $param = @{
 
-                Uri         = $uri
-                Method      = 'Put'
-                Body        = $payload
-                ContentType = $content
-                Credential  = $domainCred
+                    Uri         = $uri
+                    Method      = 'Put'
+                    Body        = $payload
+                    ContentType = $content
+                    Credential  = $domainCred
 
-            }
+                }
 
-            Invoke-RestMethod @param -UseBasicParsing -DisableKeepAlive  | Out-Null
+                Invoke-RestMethod @param -UseBasicParsing -DisableKeepAlive  | Out-Null
 
    
+            }
+        
         }          
 
     }
