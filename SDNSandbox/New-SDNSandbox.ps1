@@ -809,15 +809,32 @@ function Resolve-Applications {
     Write-Verbose "Performing simple validation of Product Keys"
     $guiResult = $SDNConfig.GUIProductKey -match '^([A-Z0-9]{5}-){4}[A-Z0-9]{5}$'
     $coreResult = $SDNConfig.COREProductKey -match '^([A-Z0-9]{5}-){4}[A-Z0-9]{5}$'
+    $consoleResult = $SDNConfig.Win10ProductKey -match '^([A-Z0-9]{5}-){4}[A-Z0-9]{5}$'
     
     if (!$guiResult) {Write-Error "Cannot validate or find the product key for the Windows Server Datacenter Desktop Experience."}
     if (!$coreResult) {Write-Error "Cannot validate or find the product key for the Windows Server Datacenter Core."}
+    if (!$consoleResult) {Write-Error "Cannot validate or find the product key for the Windows 10."}
     
     # Verify RSAT
 
     Write-Verbose "Verifying RSAT"
     $isRSAT = Get-ChildItem -Path .\Applications\RSAT  -Filter *.MSU
-    if (!$isRSAT) {Write-Error "Please check and ensure that you have correctly copied the file to \Applications\RSAT."}
+    if (!$isRSAT) {Write-Error "Please check and ensure that you have correctly copied the RSAT install file to \Applications\RSAT."}
+
+    # Verify Windows Admin Center
+    $isWAC = Get-ChildItem -Path '.\Applications\Windows Admin Center' -Filter *.MSI
+    if (!$isWAC) {Write-Error "Please check and ensure that you have correctly copied the Admin Center install file to \Applications\RSAT."}
+
+    # Are we on Server Core?
+    $regKey = "hklm:/software/microsoft/windows nt/currentversion"
+    $Core = (Get-ItemProperty $regKey).InstallationType -eq "Server Core"
+    If ($Core) {
+    
+        Write-Warning "You might not want to run SDN Sandbox on Server Core, getting remote access to the Console VM may require extra configuration."
+        Start-Sleep -Seconds 5
+
+    }
+    
     
 }
         
@@ -1399,7 +1416,7 @@ function New-DCVM {
             Write-Verbose "Installing Active Directory Forest. This will take some time..."
         
             $SecureString = ConvertTo-SecureString $SDNConfig.SDNAdminPassword -AsPlainText -Force
-            Write-Verbose "`n`n`n`n`n`n`nInstalling Active Directory..." 
+            Write-Verbose "Installing Active Directory..." 
 
             $params = @{
 
@@ -2151,7 +2168,7 @@ CertificateTemplate= WebServer
                 MaximumReceivedObjectSizeMB         = 1000
             }
 
-            Register-PSSessionConfiguration @params
+            Register-PSSessionConfiguration @params 
 
             Write-Verbose "Requesting and installing SSL Certificate" 
 
@@ -2978,7 +2995,8 @@ function Delete-SDNSandbox {
     param (
 
         $VMPlacement,
-        $SDNConfig
+        $SDNConfig,
+        $SingleHostDelete
 
     )
 
@@ -2987,12 +3005,9 @@ function Delete-SDNSandbox {
     Write-Verbose "Deleting SDNSandbox"
 
     foreach ($vm in $VMPlacement) {
-         
+
         $SDNHostName = $vm.vmHost
         $VMName = $vm.SDNHOST
-        #if ($SDNHostName -match $env:COMPUTERNAME) {$SDNHostName = 'localhost'}
-
-        Write-Verbose $SDNHostName
 
         Invoke-Command -ComputerName $SDNHostName -ArgumentList $VMName -ScriptBlock {
 
@@ -3027,6 +3042,19 @@ function Delete-SDNSandbox {
 
         }
 
+    }
+
+
+    If ($SingleHostDelete -eq $true) {
+        
+        $RemoveSwitch = Get-VMSwitch | Where-Object {$_.Name -match $SDNConfig.InternalSwitch}
+
+        If ($RemoveSwitch) {
+
+            Write-Verbose "Removing Internal Switch: $($SDNConfig.InternalSwitch)"
+            $RemoveSwitch | Remove-VMSwitch -Force -Confirm:$false
+
+        }
 
     }
 
@@ -3045,70 +3073,17 @@ function Add-WACtenants {
     $VerbosePreference = "Continue"
     Write-Verbose "Invoking Command to add Windows Admin Center Tenants"
 
-    Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
+    Invoke-Command -ComputerName Console -Credential $domainCred -ScriptBlock {
         $VerbosePreference = "Continue"
 
-        Invoke-Command -ComputerName AdminCenter -Credential $using:domainCred -ScriptBlock {
-
-            $domainCred = $using:domainCred
-            $SDNLabSystems = $using:SDNLabSystems
-            $SDNConfig = $using:SDNConfig
- 
-            $VerbosePreference = "Continue"
-
-            foreach ($SDNLabSystem in $SDNLabSystems) {
-
-
-                $json = [pscustomobject]@{
-
-                    id   = "msft.sme.connection-type.server!$SDNLabSystem"
-                    name = $SDNLabSystem
-                    type = "msft.sme.connection-type.server"
-
-                } | ConvertTo-Json
-
-
-                $payload = @"
-[
-$json
-]
-"@
-
-                if ($SDNConfig.WACport -eq "443" -or !$SDNConfig.WACport) {
-
-                    $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN)/api/connections"
-
-                }
-
-                else {
-
-                    $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN):$($SDNConfig.WACport)/api/connections"
-
-                }
-
-                Write-Verbose "Adding Host: $SDNLabSystem"
-
-
-                $param = @{
-
-                    Uri         = $uri
-                    Method      = 'Put'
-                    Body        = $payload
-                    ContentType = $content
-                    Credential  = $domainCred
-
-                }
-
-                Invoke-RestMethod @param -UseBasicParsing -DisableKeepAlive  | Out-Null
-
-   
-            }
-
+        Invoke-Command -ComputerName Console -Credential $using:domainCred  -ScriptBlock {
 
             # Set Constrained Delegation for NC/MUX/GW Virtual Machines for Windows Admin Center
 
             $SDNvms = ("NC01", "MUX01", "GW01", "GW02")
-     
+
+            $VerbosePreference = "Continue"
+
             foreach ($SDNvm in $SDNvms) {
 
                 Write-Verbose "Setting Delegation for $SDNvm"
@@ -3121,6 +3096,65 @@ $json
             }
         
         }          
+
+    }
+
+    Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
+
+        $domainCred = $using:domainCred
+        $SDNLabSystems = $using:SDNLabSystems
+        $SDNConfig = $using:SDNConfig
+ 
+        $VerbosePreference = "Continue"
+
+        foreach ($SDNLabSystem in $SDNLabSystems) {
+
+
+            $json = [pscustomobject]@{
+
+                id   = "msft.sme.connection-type.server!$SDNLabSystem"
+                name = $SDNLabSystem
+                type = "msft.sme.connection-type.server"
+
+            } | ConvertTo-Json
+
+
+            $payload = @"
+[
+$json
+]
+"@
+
+            if ($SDNConfig.WACport -eq "443" -or !$SDNConfig.WACport) {
+
+                $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN)/api/connections"
+
+            }
+
+            else {
+
+                $uri = "https://admincenter.$($SDNConfig.SDNDomainFQDN):$($SDNConfig.WACport)/api/connections"
+
+            }
+
+            Write-Verbose "Adding Host: $SDNLabSystem"
+
+
+            $param = @{
+
+                Uri         = $uri
+                Method      = 'Put'
+                Body        = $payload
+                ContentType = $content
+                Credential  = $domainCred
+
+            }
+
+            Invoke-RestMethod @param -UseBasicParsing -DisableKeepAlive  | Out-Null
+
+   
+        }
+
 
     }
 
@@ -3142,7 +3176,7 @@ function New-SDNS2DCluster {
          
         $SDNConfig = $args[0]
         $domainCred = $args[1]
-        $VerbosePreference = "Continue"
+        $VerbosePreference = "SilentlyContinue"
         $ErrorActionPreference = "Stop"
 
 
@@ -3171,11 +3205,12 @@ function New-SDNS2DCluster {
 
             # Create Cluster
 
+            $VerbosePreference = "SilentlyContinue"
             New-Cluster -Name $ClusterName -Node $SDNHosts -StaticAddress $ClusterIP `
                 -NoStorage -WarningAction SilentlyContinue | Out-Null
 
             # Invoke Command to enable S2D on SDNCluster        
-
+            
             Enable-ClusterS2D -CacheState Disabled -AutoConfig:0 -SkipEligibilityChecks -Confirm:$false  | Out-Null
 
             $params = @{
@@ -3210,7 +3245,7 @@ function New-SDNS2DCluster {
             Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\spaceport\Parameters -Name HwTimeout -Value 0x00007530
             $VerbosePreference = "Continue"
 
-        }
+        } | Out-Null
 
     } 
 
@@ -3237,6 +3272,7 @@ function New-SDNS2DCluster {
                 Set-ADComputer -Identity $nodeObject -PrincipalsAllowedToDelegateToAccount $gatewayObject
 
             }
+            
             # Set Default Path's in Hyper-V on the SDN Hosts
 
             $ClusterHosts = ("SDNHOST1", "SDNHOST2", "SDNHOST3")
@@ -3292,7 +3328,6 @@ function New-SDNS2DCluster {
                 }
             }
 
-
         }
 
     }
@@ -3340,16 +3375,22 @@ if ($Delete) {
         $params = @{
 
             MultipleHyperVHosts = $SDNConfig.MultipleHyperVHostNames
-            SDNHosts            = $SDNHosts     
+            SDNHosts            = $SDNHosts    
 
-        }
+        }       
 
         $VMPlacement = Select-VMHostPlacement @params
-
+        $SingleHostDelete = $false
     }     
-    else { $VMPlacement = Select-SingleHost -SDNHosts $SDNHosts }
+    elseif (!$SDNConfig.MultipleHyperVHosts) { 
+    
+        Write-Verbose "This is a single host installation"
+        $VMPlacement = Select-SingleHost -SDNHosts $SDNHosts
+        $SingleHostDelete = $true
 
-    Delete-SDNSandbox -SDNConfig $SDNConfig -VMPlacement $VMPlacement
+    }
+
+    Delete-SDNSandbox -SDNConfig $SDNConfig -VMPlacement $VMPlacement -SingleHostDelete $SingleHostDelete
 
     Write-Verbose "Successfully Removed the SDN Sandbox"
     exit
