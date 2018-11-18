@@ -339,12 +339,13 @@ function Copy-VHDXtoHost {
 
     )
 
-    Write-Verbose "Copying $guiVHDXPath to $HostVMPath GUI.VHDX"
+    Write-Verbose "Copying $guiVHDXPath to $HostVMPath\GUI.VHDX"
     Copy-Item -Path $guiVHDXPath -Destination "$HostVMPath\GUI.VHDX" -Force | Out-Null
     Write-Verbose "Copying $coreVHDXPath to $HostVMPath\Core.VHDX"
     Copy-Item -Path $coreVHDXPath -Destination "$HostVMPath\Core.VHDX" -Force | Out-Null
     Write-Verbose "Copying $consoleVHDXPath to $HostVMPath\Console.VHDX"
-    Copy-Item -Path $consoleVHDXPath -Destination "$HostVMPath\Console.VHDX" -Force | Out-Null    
+    Copy-Item -Path $consoleVHDXPath -Destination "$HostVMPath\Console.VHDX" -Force | Out-Null
+      
     
 }
     
@@ -493,7 +494,10 @@ function Add-Files {
     Param(
         $VMPlacement, 
         $HostVMPath, 
-        $SDNConfig
+        $SDNConfig,
+        $guiVHDXPath,
+        $coreVHDXPath,
+        $consoleVHDXPath
     )
     
     $corevhdx = 'Core.vhdx'
@@ -622,25 +626,20 @@ function Add-Files {
 
         if ($SDNHost.SDNHOST -eq "SDNMGMT") {
 
-            Write-Verbose "Injecting VMConfigs to $path"
-            Copy-Item -Path .\NestedSDN-Config.psd1 -Destination ($MountedDrive + ":\") -Recurse -Force
-            New-Item -Path ($MountedDrive + ":\") -Name VMConfigs -ItemType Directory -Force | Out-Null
-            Copy-Item -Path .\VHDX\*.* -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force
-            Copy-Item -Path .\Applications\SCRIPTS -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force
-            Copy-Item -Path '.\Applications\Windows Admin Center' -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force
-            Copy-Item -Path .\Applications\RSAT -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force    
-    
             # Creating folder structure on SDNMGMT
 
             Write-Verbose "Creating VMs\Base folder structure on SDNMGMT"
             New-Item -Path ($MountedDrive + ":\VMs\Base") -ItemType Directory -Force | Out-Null
-    
-            # Move vhdx file to correct folder
 
-            Write-Verbose "Creating VMConfigs folder structure on SDNMGMT"
-            Move-Item -Path ($MountedDrive + ":\VMConfigs\$guivhdx") -Destination ($MountedDrive + ":\VMs\Base\") -Force
-            Move-Item -Path ($MountedDrive + ":\VMConfigs\$corevhdx") -Destination ($MountedDrive + ":\VMs\Base\") -Force
-            Move-Item -Path ($MountedDrive + ":\VMConfigs\$consolevhdx") -Destination ($MountedDrive + ":\VMs\Base\") -Force
+            Write-Verbose "Injecting VMConfigs to $path"
+            Copy-Item -Path .\NestedSDN-Config.psd1 -Destination ($MountedDrive + ":\") -Recurse -Force
+            New-Item -Path ($MountedDrive + ":\") -Name VMConfigs -ItemType Directory -Force | Out-Null
+            Copy-Item -Path $guiVHDXPath -Destination ($MountedDrive + ":\VMs\Base\GUI.vhdx") -Force
+            Copy-Item -Path $coreVHDXPath -Destination ($MountedDrive + ":\VMs\Base\CORE.vhdx") -Force
+            Copy-Item -Path $consoleVHDXPath -Destination ($MountedDrive + ":\VMs\Base\CONSOLE.vhdx") -Force
+            Copy-Item -Path .\Applications\SCRIPTS -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force
+            Copy-Item -Path '.\Applications\Windows Admin Center' -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force
+            Copy-Item -Path .\Applications\RSAT -Destination ($MountedDrive + ":\VmConfigs") -Recurse -Force    
 
         }
     
@@ -3648,9 +3647,12 @@ $params = @{
     VMPlacement = $VMPlacement
     HostVMPath  = $HostVMPath
     SDNConfig   = $SDNConfig
+    guiVHDXPath = $guiVHDXPath
+    coreVHDXPath = $coreVHDXPath
+    consoleVHDXPath  = $consoleVHDXPath
 }
 
-Add-Files @params
+Add-Files @params 
     
 # Start Virtual Machines
 
