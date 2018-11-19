@@ -196,24 +196,38 @@ function New-HostvNIC {
     
     param (
 
-        $SDNConfig
+        $SDNConfig,
+        $localCred
     )
+
+    $ErrorActionPreference = "Stop"
+
+    $SBXIP = 250
+
+    foreach ($SDNSwitchHost in $SDNConfig.MultipleHyperVHostNames) {
+
+    Write-Verbose "Creating vNIC on $SDNSwitchHost"
+
+    Invoke-Command -ComputerName $SDNSwitchHost -ArgumentList $SDNConfig, $SBXIP -ScriptBlock {
+
+    $SDNConfig = $args[0]
+    $SBXIP = $args[1]
+
+    $vnicName = $SDNConfig.MultipleHyperVHostExternalSwitchName + "-SBXAccess"
     
-    $vnicName = $SDNConfig.MultipleHyperVHostExternalSwitchName + "-Access"
-    
-    $isNIC = Get-VMNetworkAdapter -ManagementOS | Where-Object {$_.Name -match $vnicName}
-    
-    if (!$isNIC) {
 
         $params = @{
 
             SwitchName = $SDNConfig.MultipleHyperVHostExternalSwitchName
             Name       = $vnicName
+
         }
     
-        Add-VMNetworkAdapter -ManagementOS @params | Out-Null
-    
-        $IP = ($SDNConfig.MGMTSubnet.TrimEnd("0/24")) + 10
+        Add-VMNetworkAdapter -ManagementOS @params  | Out-Null
+
+        Set-VMNetworkAdapterVlan -ManagementOS -Trunk -NativeVlanId 0 -AllowedVlanIdList 1-2000 
+  
+        $IP = ($SDNConfig.MGMTSubnet.TrimEnd("0/24")) + $SBXIP
         $prefix = $SDNConfig.MGMTSubnet.Split("/")[1]
         $gateway = $SDNConfig.BGPRouterIP_MGMT.TrimEnd("/24")
         $DNS = $SDNConfig.SDNLABDNS
@@ -231,6 +245,10 @@ function New-HostvNIC {
 
         $NetAdapter | New-NetIPAddress @params | Out-Null
         $NetAdapter | Set-DnsClientServerAddress -ServerAddresses $DNS | Out-Null
+
+        }
+
+        $SBXIP--
     
     }
     
@@ -892,15 +910,17 @@ function Set-SDNserver {
 
     foreach ($SDNVM in $VMPlacement) {
 
-        Invoke-Command -VMName $SDNVM.SDNHOST -ScriptBlock {
+    Invoke-Command -ComputerName $SDNVM.VMHost -ScriptBlock {
 
-            $SDNConfig = $using:SDNConfig
-            $localCred = $using:localCred
+        Invoke-Command -VMName $using:SDNVM.SDNHOST -ArgumentList $using:SDNConfig, $using:localCred -ScriptBlock {
+
+            $SDNConfig = $args[0]
+            $localCred = $args[1]
             $VerbosePreference = "Continue"
 
             # Enable WinRM
 
-            Write-Verbose "Enabling Windows Remoting"
+            Write-Verbose "Enabling Windows Remoting in $env:COMPUTERNAME"
             $VerbosePreference = "SilentlyContinue" 
             Set-Item WSMan:\localhost\Client\TrustedHosts *  -Confirm:$false -Force
             Enable-PSRemoting | Out-Null
@@ -910,20 +930,20 @@ function Set-SDNserver {
 
             Write-Verbose "Installing and Configuring Hyper-V on $env:COMPUTERNAME"
             $VerbosePreference = "SilentlyContinue"
-            Install-WindowsFeature -Name Hyper-V -IncludeAllSubFeature -IncludeManagementTools -ComputerName $env:COMPUTERNAME  | Out-Null
+            Install-WindowsFeature -Name Hyper-V -IncludeAllSubFeature -IncludeManagementTools -ComputerName $env:COMPUTERNAME -Credential $localCred  | Out-Null
             $VerbosePreference = "Continue"
 
             if ($env:COMPUTERNAME -ne "SDNMGMT") {
 
                 Write-Verbose "Installing and Configuring Failover Clustering on $env:COMPUTERNAME"
                 $VerbosePreference = "SilentlyContinue"
-                Install-WindowsFeature -Name Failover-Clustering -IncludeAllSubFeature -IncludeManagementTools -ComputerName $env:COMPUTERNAME | Out-Null 
+                Install-WindowsFeature -Name Failover-Clustering -IncludeAllSubFeature -IncludeManagementTools -ComputerName $env:COMPUTERNAME -Credential $localCred | Out-Null 
 
             }
 
             # Enable CredSSP and MTU Settings
 
-            Invoke-Command -ComputerName localhost -Credential $using:localCred -ScriptBlock {
+            Invoke-Command -ComputerName localhost -Credential $localCred -ScriptBlock {
 
                 $fqdn = $Using:SDNConfig.SDNDomainFQDN
 
@@ -939,7 +959,9 @@ function Set-SDNserver {
                     -Name 1 -Value * -PropertyType String -Force 
             } -InDisconnectedSession | Out-Null
  
-        } -Credential $localCred
+        } -Credential $using:localCred
+
+        }
 
     }
 
@@ -1082,7 +1104,7 @@ function Set-SDNMGMT {
 
     # Provision DC
 
-    Write-Host "Provisioning Domain Controller in Managment VM"
+    Write-Verbose "Provisioning Domain Controller in Managment VM"
 
     # Provision BGP TOR Router
 
@@ -3017,6 +3039,10 @@ function Delete-SDNSandbox {
             $VerbosePreference = "Continue"
             $vmname = $args[0]
 
+            # Delete SBXAccess vNIC (if present)
+            $vNIC = Get-VMNetworkAdapter -ManagementOS | Where-Object {$_.Name -match "SBXAccess"}
+            if ($vNIC) {$vNIC | Remove-VMNetworkAdapter -Confirm:$false}
+
             $sdnvm = Get-VM | Where-Object {$_.Name -eq $vmname }
 
             If (!$sdnvm) {Write-Verbose "Could not find $vmname to delete"}
@@ -3199,7 +3225,7 @@ function New-SDNS2DCluster {
 
             $VerbosePreference = "Continue"
 
-            $ClusterIP = ($SDNConfig.MGMTSubnet.TrimEnd("0/24")) + "253"
+            $ClusterIP = ($SDNConfig.MGMTSubnet.TrimEnd("0/24")) + "252"
             $ClusterName = "SDNCLUSTER"
 
             # Create Cluster
@@ -3577,8 +3603,8 @@ if ($SDNConfig.MultipleHyperVHosts) {
 
     $VMSwitch = $SDNConfig.MultipleHyperVHostExternalSwitchName
 
-    Write-Verbose "Creating vNIC on $env:COMPUTERNAME"
-    New-HostvNIC -SDNConfig $SDNConfig
+    # Write-Verbose "Creating vNIC on $env:COMPUTERNAME"
+    New-HostvNIC -SDNConfig $SDNConfig -localCred $localCred
 
 }
     
