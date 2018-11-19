@@ -1,6 +1,8 @@
 ﻿
 <#
 
+# Version 1.0.0
+
 .SYNOPSIS 
   Generates a VHDX Image from ISO as well as applies updates if a folder path 
   specified.

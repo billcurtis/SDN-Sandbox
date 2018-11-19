@@ -1,6 +1,8 @@
 ﻿@{
 
     # This is the PowerShell datafile used to provide configuration information for the SDN Nested lab environment. Product keys and password are not encrypted and will be available on all hosts during installation.
+    
+    # Version 1.0.0
 
     # Multiple Host Setup Parameters
     MultipleHyperVHosts                  = $false                                # Set to $true if deploying the Nested VM environment across multiple hosts. Set to $false if deploying to a single host. 
