@@ -6,5 +6,5 @@ validation of SDN features without the time consuming process of setting up phys
 >**SDN Sandbox is not a production solution!** SDN Sandbox's scripts have been modified to work in a limited resource environment. Because of this, it is not fault tolerant, is not designed to be highly available, and lacks the nimble speed of a **real** Microsoft SDN deployment.
 
 
-![alt text](res/SDNSandbox.png "Graphic of a fully deployed SDN Sandbox")
+![alt text](SDNSandbox/res/SDNSandbox.png "Graphic of a fully deployed SDN Sandbox")
 
