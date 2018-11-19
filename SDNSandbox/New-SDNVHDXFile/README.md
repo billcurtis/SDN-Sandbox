@@ -1,5 +1,8 @@
 # New-SDNVHDXFile
 
+
+>**Note**: This script has been successfully tested on Windows Server 2016 with Hyper-V and Hyper-V Powershell installed. However, it does not work on Windows 10, and may not work on Windows Server 2019.
+
 ## Description
 New-SDNVHDXFile is a graphically driven PowerShell script designed to assist you in creating the necessary VHDX files for the SDN Sandbox. New-SDNVHDXFile will attach to an ISO, Create a VHDX image based on your selections, and then apply any updates in a folder that you specify.
 
