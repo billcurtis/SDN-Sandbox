@@ -35,7 +35,7 @@ $domainCred = new-object -typename System.Management.Automation.PSCredential `
 
 # STEP01: Install and configure DNS Server
 
-Write-Verbose "First, we need to install a DNS Server, we "could" use the DC's DNS server, but that would be a little messy. Let's create a DNS server on the admincenter VM..."
+Write-Verbose "First, we need to install a DNS Server, we could use the DC's DNS server, but that would be a little messy. Let's create a DNS server on the admincenter VM..."
 
 Install-WindowsFeature -Name DNS -IncludeManagementTools -ComputerName AdminCenter | Out-Null
 
