@@ -103,12 +103,19 @@
     VLAN200Subnet                        = "192.168.200.0/24"
     VLAN200VMNetworkSubnet               = "192.168.44.0/24"
 
+    # Gateway Target IPs
+    GRETARGETIP_BE                       = "192.168.233.100/24"
+    GRETARGETIP_FE                       = "131.127.0.35/24"
+    IPSECTARGETIP_BE                     = "192.168.111.100/24"
+    IPSECTARGETIP_FE                     = "131.127.0.30/24"
+
     # VIP Subnets
     PrivateVIPSubnet                     = "30.30.30.0/24" 
     PublicVIPSubnet                      = "40.40.40.0/24"
 
     # SDN ASN
     SDNASN                               = 64512
+    WACASN                               = 65533
 
     # Windows Admin Center HTTPS Port
     WACport                              = 443
