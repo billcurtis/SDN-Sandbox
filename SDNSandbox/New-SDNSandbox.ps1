@@ -1,7 +1,4 @@
 ﻿<#
-
-Version 1.0.0
-
 .SYNOPSIS 
     Deploys and configures a minimal Microsoft SDN infrastructure in a Hyper-V
     Nested Environment for training purposes. This deployment method is not
@@ -1165,7 +1162,7 @@ function Set-SDNMGMT {
                     $DomainJoined = (Get-WmiObject -ComputerName $ip -Class win32_computersystem).domain
                 }
 
-                Restart-Computer -ComputerName $IP -Credential $localCred 
+                Restart-Computer -ComputerName $IP -Credential $localCred -Force
 
             }
 
@@ -1830,8 +1827,21 @@ function New-RouterVM {
             $VerbosePreference = "Continue"
             Write-Verbose "Installing BGP Router on $env:COMPUTERNAME"
             $VerbosePreference = "SilentlyContinue"
-            Add-BgpRouter -BGPIdentifier $PNVIP -LocalASN $SDNConfig.BGPRouterASN `
-                -TransitRouting Enabled -ClusterId 1 -RouteReflector Enabled
+
+            $params = @{
+
+            BGPIdentifier = $PNVIP
+            LocalASN =  $SDNConfig.BGPRouterASN
+            TransitRouting = 'Enabled'
+            ClusterId = 1
+            RouteReflector = 'Enabled'
+
+            }
+
+            Add-BgpRouter @params
+
+            #Add-BgpRouter -BGPIdentifier $PNVIP -LocalASN $SDNConfig.BGPRouterASN `
+               # -TransitRouting Enabled -ClusterId 1 -RouteReflector Enabled
 
             # Configure BGP Peers
 
@@ -1925,6 +1935,10 @@ function New-AdminCenterVM {
 
         # MountVHDXFile
 
+        $VerbosePreference = "SilentlyContinue"
+        Import-Module DISM
+        $VerbosePreference = "Continue"
+
         Write-Verbose "Mounting and Injecting Answer File into the $VMName VM." 
         New-Item -Path "C:\TempWACMount" -ItemType Directory | Out-Null
         Mount-WindowsImage -Path "C:\TempWACMount" -Index 1 -ImagePath (($VHDPath) + ($VMName) + (".vhdx")) | Out-Null
@@ -1933,6 +1947,10 @@ function New-AdminCenterVM {
 
         Write-Verbose "Copying Application and Script Source Files to $VMName"
         Copy-Item 'C:\VMConfigs\Windows Admin Center' -Destination C:\TempWACMount\ -Recurse -Force
+        Copy-Item C:\VMConfigs\SCRIPTS -Destination C:\TempWACMount -Recurse -Force
+        New-Item -Path C:\TempWACMount\VHDs -ItemType Directory -Force | Out-Null
+        Copy-Item C:\VMs\Base\Core.vhdx -Destination C:\TempWACMount\VHDs -Force
+        Copy-Item C:\VMs\Base\GUI.vhdx  -Destination  C:\TempWACMount\VHDs -Force
 
         # Apply Custom Unattend.xml file
 
@@ -2100,6 +2118,10 @@ function New-AdminCenterVM {
             $VerbosePreference = "Continue"
             $ErrorActionPreference = "Stop"
 
+            $VerbosePreference = "SilentlyContinue"
+            Import-Module NetAdapter
+            $VerbosePreference = "Continue"
+
             Write-Verbose "Rename Network Adapter in $VMName VM" 
             Get-NetAdapter -Name Ethernet | Rename-NetAdapter -NewName Fabric
 
@@ -2132,13 +2154,20 @@ function New-AdminCenterVM {
 
             if ($isAvailable) {
 
+                $VerbosePreference = "SilentlyContinue"
+                Import-Module ServerManager
+                $VerbosePreference = "Continue"
+
+                Write-Verbose "Installing RSAT-NetworkController"
                 Install-WindowsFeature -Name RSAT-NetworkController -IncludeAllSubFeature -IncludeManagementTools | Out-Null
 
             }
 
+            # Install Hyper-V RSAT
 
-            # Set Gateway
-            
+            Write-Verbose "Installing Hyper-V RSAT Tools"
+            Install-WindowsFeature -Name RSAT-Hyper-V-Tools -IncludeAllSubFeature -IncludeManagementTools | Out-Null
+         
 
             # Request SSL Certificate for Windows Admin Center
 
@@ -2192,7 +2221,9 @@ CertificateTemplate= WebServer
                 MaximumReceivedObjectSizeMB         = 1000
             }
 
-            Register-PSSessionConfiguration @params 
+            $VerbosePreference = "SilentlyContinue"            
+            Register-PSSessionConfiguration @params
+            $VerbosePreference = "Continue"
 
             Write-Verbose "Requesting and installing SSL Certificate" 
 
@@ -2242,7 +2273,7 @@ CertificateTemplate= WebServer
 
         } 
 
-    } -AsJob
+    } 
 
 }
 
@@ -2754,18 +2785,22 @@ function New-HyperConvergedEnvironment {
 
                     Write-Verbose "Creating SET Hyper-V External Switch $sdnswitchName on host $env:COMPUTERNAME"
 
-                    # Create Hyper-V Virtual Switch
+                    # Create Hyper-V Virtual Switch on Secondary NIC (Windows 2016 does not play too nice with adding both at once)
 
                     $params = @{
 
                         Name                  = $sdnswitchName
                         AllowManagementOS     = $true
-                        NetAdapterName        = $sdnswitchteammembers
+                        NetAdapterName        = $sdnswitchteammembers[1]
                         EnableEmbeddedTeaming = $true
 
                     }
 
                     New-VMSwitch @params | Out-Null
+
+                    # Add secondary NIC
+                    Write-Verbose "Adding second NIC to team"
+                    Add-VMSwitchTeamMember -VMSwitchName $sdnswitchName -NetAdapterName $sdnswitchteammembers[0] 
 
                     # Set IP Config
                     Write-Verbose "Setting IP Configuration on $sdnswitchName"
@@ -2806,6 +2841,7 @@ function New-HyperConvergedEnvironment {
                     # Disable Switch Extensions
 
                     Get-VMSwitchExtension -VMSwitchName $sdnswitchName | Disable-VMSwitchExtension | Out-Null
+
 
                     # Enable Large MTU
 
@@ -2873,11 +2909,11 @@ function New-SDNEnvironment {
 
     )
 
-    Invoke-Command -ComputerName Console -Credential $domainCred -ScriptBlock {
+    Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ScriptBlock {
 
-        Register-PSSessionConfiguration -Name microsoft.SDNNested -RunAsCredential $domainCred -MaximumReceivedDataSizePerCommandMB 1000 -MaximumReceivedObjectSizeMB 1000 | Out-Null
+        Register-PSSessionConfiguration -Name microsoft.SDNNestedSetup -RunAsCredential $domainCred -MaximumReceivedDataSizePerCommandMB 1000 -MaximumReceivedObjectSizeMB 1000 | Out-Null
 
-        Invoke-Command -ComputerName localhost -Credential $Using:domainCred -ArgumentList $Using:domainCred, $Using:SDNConfig -ConfigurationName microsoft.SDNNested -ScriptBlock {
+        Invoke-Command -ComputerName localhost -Credential $Using:domainCred -ArgumentList $Using:domainCred, $Using:SDNConfig -ConfigurationName microsoft.SDNNestedSetup -ScriptBlock {
 
             
             $NCConfig = @{}
@@ -2923,9 +2959,7 @@ function New-SDNEnvironment {
                 $NCConfig.VHDFile = "Core.vhdx"
                 $NCConfig.VHDPath = "C:\VHDS"
                 $NCConfig.ManagementSubnet = $SDNConfig.MGMTSubnet
-                $NCConfig.iDNSIPAddress = $SDNConfig.SDNLABDNS
-                $NCConfig.iDNSMacAddress = “aa-bb-cc-aa-bb-cc”
-                $NCConfig.TimeZone = (Get-TimeZone).id
+                $NCConfig.ProductKey = $SDNConfig.COREProductKey
 
                 $NCConfig.HyperVHosts = @("sdnhost1.$fqdn", "sdnhost2.$fqdn", "sdnhost3.$fqdn" )
 
@@ -3359,6 +3393,56 @@ function New-SDNS2DCluster {
         }
 
     }
+
+}
+
+function Copy-NCCert {
+
+    param (
+
+        $SDNConfig,
+        $domainCred
+
+    )
+
+$certExist = Invoke-Command -ComputerName AdminCenter -Credential $domainCred -ArgumentList $SDNConfig -ScriptBlock {
+
+$VerbosePreference  = "Continue"
+
+$SDNConfig = $args[0]
+$NCCertName = "NC01.$($SDNConfig.SDNDomainFQDN)"
+
+$NCCert = Get-ChildItem -path Cert:\LocalMachine\root | Where-Object {$_.Subject -match $NCCertName}
+
+if ($NCCert) { 
+
+Write-Verbose "Exporting Certificate $($NCCert.Thumbprint) to .cer file"
+
+Export-Certificate -Cert $NCCert -FilePath \\console\c$\NCCert.cer -Force | Out-Null
+
+return $true
+
+}
+
+
+}
+
+
+if ($certExist) {
+
+Invoke-Command  -ComputerName Console -Credential $domainCred -ArgumentList $SDNConfig -ScriptBlock {
+
+$VerbosePreference  = "Continue"
+
+Write-Verbose "Importing Network Controller Certificate into $env:COMPUTERNAME's ROOT Store"
+
+Import-Certificate -FilePath C:\NCCert.cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+
+}
+
+
+
+}
 
 }
 
@@ -3827,7 +3911,9 @@ New-SDNS2DCluster @params
 
 
 
-# Install Network Controller (Custom SDN Express Script)
+# Install and Configure Network Controller if specified
+
+If ($SDNConfig.ProvisionNC) {
 
 $params = @{
 
@@ -3863,7 +3949,15 @@ $params.domainCred = $NCAdminCred
 Add-WACtenants @params
 
 
-Write-Verbose "`nSuccessfully deployed SDNSandbox"
+# Copy NC Cert to Console's ROOT Store
+
+ Copy-NCCert -SDNConfig $SDNConfig -domainCred $domainCred 
+
+
+}
+
+
+Write-Verbose "`nSuccessfully deployed the SDN Sandbox"
  
 $ErrorActionPreference = "Continue"
 $VerbosePreference = "SilentlyContinue"
