@@ -1,4 +1,4 @@
-# Scenario 01 : Create Tenant VMs and attach to SDN VM Network
+# Lab 01 : Create Tenant VMs and attach to SDN VM Network
 
 
 ## Objective
@@ -16,6 +16,10 @@ You come up with the following action plan:
 4. In Windows Admin Center, create **TenantVM1** and **TenantVM2** virtual machines and then connect their network adapters to **TenantSubnet1**
 
 5. Run Ping tests to validate VXLAN communication between both VMs.
+
+6. Examine Provider Address mappings.
+
+7. Test NIC encapsulation overhead settings.
 
 
 ## Exercise 01:   Create a SDN VM Network named **TenantNetwork1** in Windows Admin Center with a Address Prefix of **192.172.0.0/16**
@@ -154,4 +158,21 @@ In this exercise, we will look at the host SDNHOST2 and examine its provider add
 ![alt text](res/1-10.png "PA Addressing in a nutshell")
 
 5. In the screenshot above, we can see that TenantVM1 **192.172.33.5 (TenantVM1)** is on this host as its PA is 172.17.0.7. When **Get-ProviderAddress** was run, we could see that 172.17.0.7 belongs to SDNHOST2. However, for **192.172.33.4 (TenantVM2)**, the PA is (172.17.0.9) which is **NOT** local. So if TenantVM1 tries to send traffic to TenantVM2, SDNHOST2's VM Switch is going send the traffic over the PA address 172.17.0.9 (Which, this example is SDNHOST3)
+
+## Exercise 06: Testing Hyper-V Host Encapsulation Settings
+
+A common problem in the PA logical network is that the physical network ports and/or Ethernet card do not have a large enough MTU (Jumbo Frames) configured to handle the overhead from VXLAN (or NVGRE) encapsulation. This can cause issues where tenant VMs cannot communicate with one another. In order to verify that this is not an issue, you can run the **Test-EncapOverheadSettings** PowerShell cmdlet on all hosts in order to verify that all physical NICs can handle encapsulated packets.
+
+1. Using Windows Admin Center, go to SDNHOST2 and then select PowerShell and login.
+
+![alt text](res/1-09.png "Logging into SDNHOST2 PowerShell")
+
+2. Run **Test-EncapOverheadSettings** and examine the results.
+
+![alt text](res/1-11.png "Logging into SDNHOST2 PowerShell")
+
+
+
+
+
 
