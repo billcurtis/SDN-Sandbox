@@ -1,4 +1,4 @@
-# SDN Sandbox Guide (11/14/2018)
+# SDN Sandbox Guide (9/18/2019)
 
 SDN Sandbox is a series of scripts that creates a [HyperConverged](https://docs.microsoft.com/en-us/windows-server/hyperconverged/) environment using four nested Hyper-V Virtual Machines. The purpose of the SDN Sandbox is to provide operational training on Microsoft SDN as well as provide a development environment for DevOPs to assist in the creation and
 validation of SDN features without the time consuming process of setting up physical servers and network routers\switches.
@@ -23,7 +23,7 @@ You probably are not going to read the requirements listed below, so here are th
 
 > **Note** - It is best to use Windows Server **Desktop Experience** on a single machine as it is easier to RDP into the **Console** VM.
 
-2. Create Sysprepped VHDX files for the 2016 Datacenter GUI and CORE installation options. Ensure that the 05-2018 Updates have been applied to both VHDX files. Windows 2019 Datacenter will work fine once the SDDC components (S2D\SDN) are unlocked later next year.
+2. Create Sysprepped VHDX files for the 2019 Datacenter GUI and CORE installation options. E
 
 3. Create a Sysprepped VHDX file of Windows 10 1709 or higher.
 
@@ -33,7 +33,7 @@ You probably are not going to read the requirements listed below, so here are th
 
     * Product Keys for Datacenter, and the product key for Windows 10.  
       
-    >**Warning!** The Configuration file will be copied to the console drive during install. **The product keys will be in plain text and not deleted!**     
+    >**Warning!** The Configuration file will be copied to the console drive during install. **The product keys will be in plain text and not deleted or hidden!**     
     
     * The paths to the VHDX files that you just created.
     * Set ``HostVMPath`` where your VHDX files will reside. (*Ensure that there is at least 250gb of free space!*)
@@ -111,9 +111,8 @@ If you wish the environment to have internet access in the Sandbox, create a VMs
 
 ### Required VHDX files:
 
- **GUI.vhdx** - Sysprepped Desktop Experience version of Windows Server 2016/2019 **Datacenter**. Only Windows Server 2016 or Windows 2019 Datacenter is supported. Other releases such as Server Datacenter 1809 are not supported as they do not support S2D
+ **GUI.vhdx** - Sysprepped Desktop Experience version of Windows Server 2019 **Datacenter**. Only Windows Server 2019 Datacenter is supported. Other releases such as Server Datacenter 1809 are not supported as they do not support S2D.
            
-  >**Note:** Server 2016 will require KB4103723 or higher updates to be applied to the VHDX file (use DISM). SDN is not available yet in the RTM version of Server 2019, but will be in the future.
   
 **CORE.vhdx** - Same requirements as GUI.vhdx except the Core installation from the same media that the GUI.VHDX file is placed from.
 
