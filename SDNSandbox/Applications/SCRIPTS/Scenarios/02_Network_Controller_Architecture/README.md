@@ -11,6 +11,6 @@ In this scenario, we will be examining the SDN architecture and the different wa
 1. Log into **Console** using RDP
 2. On the desktop, **Right-Click** on the **SDN Explorer** shortcut and select **Run with PowerShell**
 
-![alt text](res/2-01.png =100x200) 
+![alt text](res/2-01.png "Run SDN Explorer") 
 
 3. Next,
