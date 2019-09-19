@@ -26,7 +26,7 @@ $VerbosePreference = "Continue"
 
 # Load in the configuration file.
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
-if (!$SDNConfig) {Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file."}
+if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 
 # Set Credential Object
 $domainCred = new-object -typename System.Management.Automation.PSCredential `
@@ -48,10 +48,10 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
     Write-Verbose "Copying Over VHDX files for TenantVMs. This can take some time..."
 
-    $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object {$_.Name -match "Windows Server 2019"}
+    $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object { $_.Name -match "Windows Server 2019" }
 
-    If ($OSVer) {$csvfolder = "S2D_vDISK1"}
-    else {$csvfolder = "Volume1"}
+    If ($OSVer) { $csvfolder = "S2D_vDISK1" }
+    else { $csvfolder = "Volume1" }
 
     $TenantVMs = @("TenantVM1", "TenantVM2")
 
@@ -189,6 +189,26 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
 
         Set-Content @params -Force
+
+        #  Install IIS Web Server
+
+        Write-Verbose "Installing IIS Web Server on $VMName"
+
+        $params = @{
+        
+            Path        = $MountPath.FullName
+            Featurename = 'IIS-WebServerRole'
+        
+        }
+        
+        Enable-WindowsOptionalFeature @params -All -LimitAccess | Out-Null
+        
+        
+        Write-Verbose "Creating simple Web Page on $VMName"
+        
+        # Set Simple Web-Page
+        $sysinfo = [PSCustomObject]@{ComputerName = $VMName }
+        $sysinfo | ConvertTo-Html | Out-File  "$($MountPath.FullName)\inetpub\wwwroot\iisstart.htm" -Force
 
         # Dismount Image with Commit
 
