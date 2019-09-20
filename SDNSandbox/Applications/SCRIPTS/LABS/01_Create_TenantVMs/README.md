@@ -61,7 +61,7 @@ You come up with the following action plan:
 
 1. In the **Console** VM, open a **PowerShell** console with Admin rights.
 
-2. In the PowerShell console, navigate to ``C:\SCRIPTS\Scenarios\01_Create_TenantVMs\``
+2. In the PowerShell console, navigate to ``C:\SCRIPTS\LABS\01_Create_TenantVMs\``
 
 3. Run ``.\01_Create_TenantVMs.ps1``
 
