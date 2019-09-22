@@ -71,7 +71,7 @@ You come up with the following action plan:
 
 > This script copies the GUI.VHDX to folders on the C:\ClusterStorage\<volume>\ drive, injects answer files that specify the VM's Name, Product Key, and also disables Windows Firewall so you can easily perform a ping test.
 
-5. Step 02 is now complete.
+
 
 
 
