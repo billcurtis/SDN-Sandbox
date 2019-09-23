@@ -248,7 +248,7 @@ In this exercise, we will run a script that will install and configure iDNS.
 
 1. In the **Console** VM, open up the **Hyper-V Manager** MMC from the desktop.
 
-2. In Hyper-V Manager, navigate to **SDNHOST3** and then connect and logon to **WebServerVm1**
+2. In Hyper-V Manager, connect to Hyper-V Server **SDNHOST3** and then connect and logon to **WebServerVm1**
 
 ![alt text](res/3-16.png "Hyper-V-Manager") 
 
@@ -275,10 +275,45 @@ You should now see that web access is working.
 
 ![alt text](res/3-21.png "Connect to DNS Server) 
 
-3. If you go through the DNS server, you will notice that there are no entries for any systems. 
+3. In **DNS Manager**, expand **Forward Lookup Zones** and then expand **tenantsdn.local** you will notice that there are no records of note listed. 
 
-# Lab 03.04 Floating IPs and NAT
+![alt text](res/3-24.png "Empty DNS") 
 
-# Lab 03.05 Troubleshooting SLB
+4. In **Hyper-V Manager** or **Windows Admin Center**, restart WebServerVM1 and WebServerVM2.
+
+5. After the VMs have finished restarting, navigate back to to **DNS Manager** and refresh **tenantsdn.local**. You should now see records under **tenantsdn.local**.
+
+![alt text](res/3-25.png "We have records in DNS!")
+
+As you can see, you now have entries in DNS. This means that you now have the ability to resolve names of other tenant VMs within your VM Network. In the next exercise you will test this out.
+
+## Exercise 04: Examine Tenant DNS Resolution
+
+In this exercise you will see how iDNS allows you to resolve names of other tenant VMs within you VM Network.
+
+1. In **Hyper-V Manager** or **Windows Admin Center**, connect to and logon to the virtual machine **WebServerVM1**.
+
+2. In **WebServerVM1**, open a **CMD** or **PowerShell** console and type the following commands:
+
+```nslookup WebServerVM2```
+
+```ping WebServerVM2```
+
+You should be able to resolve the ip for **WebServerVM2** as well as ping **WebServerVM2** from **WebServerVM1**.
+
+![alt text](res/3-26.png "We have records in DNS!")
+
+
+# Lab 03.04 Use the Software Load Balancer for forwarding traffic
+
+If you need to map a Virtual IP to a single network interface on a virtual network without defining individual ports, you can create an L3 forwarding rule. This rule forwards all traffic to and from the VM via the assigned VIP contained in a PublicIPAddress object.
+
+If you defined the VIP and DIP as the same subnet, then this is equivalent to performing L3 forwarding without NAT.
+
+## Exercise 01: Create Forwarding VIP
+
+## Exercise 02: Test Forwarding VIP
+
+## Exercise 03: Remove Forwarding VIP
 
 

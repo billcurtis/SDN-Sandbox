@@ -9,10 +9,9 @@
      1. Creates two Windows Server (Desktop Experience) VHD files for TenantVM1 and TenantVM2, injects a unattend.xml
      2. Creates the TenantVM1 and TenantVM2 virtual machines
      3. Adds TenantVM1 and TenantVM2 to the SDNCluster
-     4. Creates an ACL in Network Controller to allow all traffic.
-     5. Creates a VM Network and VM Subnet in Network Controller, and adds the AllowAll ACL.
-     6. Creates TenantVM1 and TenantVM2 Network Interfaces in Network Controller
-     7. Sets the port profiles on TenantVM1 and TenantVM2 Interfaces
+     4. Creates a VM Network and VM Subnet in Network Controller
+     5. Creates TenantVM1 and TenantVM2 Network Interfaces in Network Controller
+     6. Sets the port profiles on TenantVM1 and TenantVM2 Interfaces
    
 
     After running this script, follow the directions in the README.md file for this scenario.
@@ -284,7 +283,7 @@ $VerbosePreference = "SilentlyContinue"
 Import-Module NetworkController
 $VerbosePreference = "Continue"
 
-# Create ACL in Network Controller to Allow All
+<# Create ACL in Network Controller to Allow All
 Write-Verbose "Creating AllowAll ACL"
 
 $uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
@@ -319,15 +318,15 @@ $aclrule2.ResourceId = "AllowAll_Outbound"
 $acllistproperties = new-object Microsoft.Windows.NetworkController.AccessControlListProperties  
 $acllistproperties.AclRules = @($aclrule1, $aclrule2)  
 New-NetworkControllerAccessControlList -ResourceId "AllowAll" -Properties $acllistproperties -ConnectionUri $uri -Force
-
+#>
 
 # Create VM Network in Network Controller
 Write-Verbose "Creating the VM Network vmNetwork1 in NC with a subnet named vmSubnet1"
 
 #Find the HNV Provider Logical Network 
 
-$VMNetworkName = "vmNetwork1"
-$VMSubnetName = "vmSubnet1"
+$VMNetworkName = "TenantNetwork1"
+$VMSubnetName = "TenantSubnet1"
 $VMNetworkPrefix = '192.172.0.0/16' 
 $VMSubnetPrefix = '192.172.33.0/24'
 
@@ -339,9 +338,9 @@ foreach ($ln in $logicalnetworks) {
 }   
 
 #Find the Access Control List to user per virtual subnet
-Write-Verbose "Getting the AllowAll ACL to apply to this VM Network"  
+#Write-Verbose "Getting the AllowAll ACL to apply to this VM Network"  
 
-$acllist = Get-NetworkControllerAccessControlList -ConnectionUri $uri -ResourceId "AllowAll"  
+#$acllist = Get-NetworkControllerAccessControlList -ConnectionUri $uri -ResourceId "AllowAll"  
 
 #Create the Virtual Subnet
 
@@ -350,7 +349,7 @@ Write-Verbose "Creating the Virtual Subnet $VMSubnetName"
 $vsubnet = new-object Microsoft.Windows.NetworkController.VirtualSubnet  
 $vsubnet.ResourceId = $VMSubnetName  
 $vsubnet.Properties = new-object Microsoft.Windows.NetworkController.VirtualSubnetProperties  
-$vsubnet.Properties.AccessControlList = $acllist  
+#$vsubnet.Properties.AccessControlList = $acllist  
 $vsubnet.Properties.AddressPrefix = $VMSubnetPrefix  
 
 #Create the Virtual Network  
@@ -381,13 +380,13 @@ $ipconfiguration.resourceid = "TenantVM1_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
 $ipconfiguration.properties.PrivateIPAddress = “192.172.33.4”
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
-$ipconfiguration.Properties.AccessControlList = $acllist
+#$ipconfiguration.Properties.AccessControlList = $acllist
 
 $ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkController.Subnet
 $ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
 
 $vmnicproperties.IpConfigurations = @($ipconfiguration)
-New-NetworkControllerNetworkInterface –ResourceID “TenantVM1_Ethernet1” –Properties $vmnicproperties –ConnectionUri $uri -Force
+New-NetworkControllerNetworkInterface –ResourceID "TenantVM1_Ethernet1" –Properties $vmnicproperties –ConnectionUri $uri -Force
 
 $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId TenantVM1_Ethernet1
 
@@ -444,13 +443,13 @@ $ipconfiguration.resourceid = "TenantVM2_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
 $ipconfiguration.properties.PrivateIPAddress = “192.172.33.5”
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
-$ipconfiguration.Properties.AccessControlList = $acllist
+#$ipconfiguration.Properties.AccessControlList = $acllist
 
 $ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkController.Subnet
 $ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
 
 $vmnicproperties.IpConfigurations = @($ipconfiguration)
-New-NetworkControllerNetworkInterface –ResourceID “TenantVM2_Ethernet1” –Properties $vmnicproperties –ConnectionUri $uri -Force
+New-NetworkControllerNetworkInterface –ResourceID "TenantVM2_Ethernet1" –Properties $vmnicproperties –ConnectionUri $uri -Force
 
 $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId TenantVM2_Ethernet1
 
