@@ -350,7 +350,7 @@ New-NetworkControllerNetworkInterface –ResourceID “WebServerVM1_Ethernet1”
 
 $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId WebServerVM1_Ethernet1
 
-Write-Verbose "Invoking command on the SDNHOST where WebServerVM1 resides. Command will set the VFP extension so WebServerVM2 will have access to the network."
+Write-Verbose "Invoking command on the SDNHOST where WebServerVM1 resides. Command will set the VFP extension so WebServerVM1 will have access to the network."
 
 Invoke-Command -ComputerName SDNHOST3 -ArgumentList $nic -ScriptBlock {
 
@@ -359,7 +359,7 @@ Invoke-Command -ComputerName SDNHOST3 -ArgumentList $nic -ScriptBlock {
     #The hardcoded Ids in this section are fixed values and must not change.
     $FeatureId = "9940cd46-8b06-43bb-b9d5-93d50381fd56"  # This value never changes.
  
-    $vmNic = Get-VMNetworkAdapter -VMName “WebServerVM1”
+    $vmNic = Get-VMNetworkAdapter -VMName WebServerVM1
  
     $CurrentFeature = Get-VMSwitchExtensionPortFeature -FeatureId $FeatureId -VMNetworkAdapter $vmNic
  
@@ -409,7 +409,7 @@ $ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkControl
 $ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
 
 $vmnicproperties.IpConfigurations = @($ipconfiguration)
-New-NetworkControllerNetworkInterface –ResourceID “WebServerVM2_Ethernet1” –Properties $vmnicproperties –ConnectionUri $uri -Force
+New-NetworkControllerNetworkInterface -ResourceID 'WebServerVM2_Ethernet1' -Properties $vmnicproperties -ConnectionUri $uri -Force
 
 $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId WebServerVM2_Ethernet1
 
@@ -422,7 +422,7 @@ Invoke-Command -ComputerName SDNHOST1 -ArgumentList $nic -ScriptBlock {
     #The hardcoded Ids in this section are fixed values and must not change.
     $FeatureId = "9940cd46-8b06-43bb-b9d5-93d50381fd56"
  
-    $vmNic = Get-VMNetworkAdapter -VMName “WebServerVM2”
+    $vmNic = Get-VMNetworkAdapter -VMName WebServerVM2 
  
     $CurrentFeature = Get-VMSwitchExtensionPortFeature -FeatureId $FeatureId -VMNetworkAdapter $vmNic
  

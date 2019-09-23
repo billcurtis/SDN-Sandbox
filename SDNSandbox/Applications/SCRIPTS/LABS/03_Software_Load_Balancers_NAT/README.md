@@ -269,7 +269,7 @@ You should now see that web access is working.
 
  1. From the desktop on the console VM, click on **DNS**
 
-![alt text](res/3-21.png "DNS Shortcut") 
+![alt text](res/3-22.png "DNS Shortcut") 
 
 2. In the **Connect to DNS Server** dialog, enter **Admincenter** for the computer that is hosting you tenant DNS.
 
