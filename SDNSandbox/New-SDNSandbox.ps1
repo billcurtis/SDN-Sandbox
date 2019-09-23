@@ -1434,6 +1434,9 @@ function New-DCVM {
             Install-WindowsFeature -name AD-Domain-Services –IncludeManagementTools | Out-Null
             $VerbosePreference = "Continue"
 
+            Write-Verbose "Configuring Trusted Hosts"
+            set-item .\TrustedHosts -Value * -Force -Confirm:$false
+
             Write-Verbose "Installing Active Directory Forest. This will take some time..."
         
             $SecureString = ConvertTo-SecureString $SDNConfig.SDNAdminPassword -AsPlainText -Force
@@ -2121,6 +2124,9 @@ function New-AdminCenterVM {
             $VerbosePreference = "SilentlyContinue"
             Import-Module NetAdapter
             $VerbosePreference = "Continue"
+
+            Write-Verbose "Configuring WSMAN Trusted Hosts"
+            set-item .\TrustedHosts -Value * -Force -Confirm:$false
 
             Write-Verbose "Rename Network Adapter in $VMName VM" 
             Get-NetAdapter -Name Ethernet | Rename-NetAdapter -NewName Fabric

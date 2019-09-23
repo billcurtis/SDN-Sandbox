@@ -182,6 +182,10 @@ function New-SDNExpressNetworkController
         write-sdnexpresslog "Creating node cert for: $ncnode"
 
         [byte[]] $CertData = invoke-command -computername $ncnode {
+
+            # Set Trusted Hosts
+            set-item .\TrustedHosts -Value * -Force -Confirm:$false | Out-Null
+
             $NodeFQDN = (Get-WmiObject win32_computersystem).DNSHostName+"."+(Get-WmiObject win32_computersystem).Domain
             $Cert = get-childitem "Cert:\localmachine\my" | where {$_.Subject.ToUpper().StartsWith("CN=$NodeFQDN".ToUpper())}
 

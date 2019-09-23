@@ -338,7 +338,7 @@ $vmnicproperties.IsPrimary = $true
 $ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
 $ipconfiguration.resourceid = "WebServerVM1_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
-$ipconfiguration.properties.PrivateIPAddress = “192.173.44.4”
+$ipconfiguration.properties.PrivateIPAddress = '192.173.44.4'
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
 #$ipconfiguration.Properties.AccessControlList = $acllist
 
@@ -401,7 +401,7 @@ $vmnicproperties.IsPrimary = $true
 $ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
 $ipconfiguration.resourceid = "WebServerVM2_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
-$ipconfiguration.properties.PrivateIPAddress = “192.173.44.5”
+$ipconfiguration.properties.PrivateIPAddress = '192.173.44.5'
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
 #$ipconfiguration.Properties.AccessControlList = $acllist
 
