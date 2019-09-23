@@ -1435,7 +1435,7 @@ function New-DCVM {
             $VerbosePreference = "Continue"
 
             Write-Verbose "Configuring Trusted Hosts"
-            set-item .\TrustedHosts -Value * -Force -Confirm:$false
+            Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force
 
             Write-Verbose "Installing Active Directory Forest. This will take some time..."
         
@@ -2126,7 +2126,7 @@ function New-AdminCenterVM {
             $VerbosePreference = "Continue"
 
             Write-Verbose "Configuring WSMAN Trusted Hosts"
-            set-item .\TrustedHosts -Value * -Force -Confirm:$false
+            Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force
 
             Write-Verbose "Rename Network Adapter in $VMName VM" 
             Get-NetAdapter -Name Ethernet | Rename-NetAdapter -NewName Fabric
