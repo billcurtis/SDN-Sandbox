@@ -308,12 +308,47 @@ You should be able to resolve the ip for **WebServerVM2** as well as ping **WebS
 
 If you need to map a Virtual IP to a single network interface on a virtual network without defining individual ports, you can create an L3 forwarding rule. This rule forwards all traffic to and from the VM via the assigned VIP contained in a PublicIPAddress object.
 
-If you defined the VIP and DIP as the same subnet, then this is equivalent to performing L3 forwarding without NAT.
+>**Note:** If you defined the VIP and DIP as the same subnet, then this is equivalent to performing L3 forwarding without NAT using a RAS Gateway.
 
 ## Exercise 01: Create Forwarding VIP
 
+In this exercise, we will run a script to create the forwarding public VIP (```40.40.40.30```) and attach that VIP to a network interface.
+
+1. From the desktop on the console VM, load the PowerShell ISE with Admin Rights.
+
+![alt text](res/3-03.png "PowerShell ISE") 
+
+2. In the PowerShell ISE, navigate to ``C:\SCRIPTS\LABS\03_Software_Load_Balancers_NAT\``
+
+3. Load the file ``.\03.04_Create_Forwarding_VIP.ps1``
+
+4. Examine the PowerShell Script to see how the public VIP is provisioned and assigned.
+
+5. Run the script.
+
 ## Exercise 02: Test Forwarding VIP
 
+Testing the forwarding VIP can be accomplished in many ways. Since the SLB is forwarding **ALL** traffic in both directions to the specified network interface, you can connect to this interface using UDP/TCP. 
+
+>**Note:** You still won't be able to ping the VIP unless you configure the SLB to respond to ICMP traffic.
+
+1. From the **console** vm, using Windows Explorer, navigate to ```\\40.40.40.30\c$```
+2. From the **console** vm, RDP to ```40.40.40.30```
+
 ## Exercise 03: Remove Forwarding VIP
+
+In this exercise, we will run a script to remove forwarding public VIP that was created in Exercise 01.
+
+1. From the desktop on the console VM, load the PowerShell ISE with Admin Rights.
+
+![alt text](res/3-03.png "PowerShell ISE") 
+
+2. In the PowerShell ISE, navigate to ``C:\SCRIPTS\LABS\03_Software_Load_Balancers_NAT\``
+
+3. Load the file ``.\03.04_Delete_Forwarding_VIP.ps1``
+
+4. Examine the PowerShell Script to see how the public VIP is removed.
+
+5. Run the script.
 
 

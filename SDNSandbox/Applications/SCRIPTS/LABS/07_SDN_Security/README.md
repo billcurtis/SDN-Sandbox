@@ -8,6 +8,6 @@ In this series of exercises, you will learn to configure software load balancing
 
 # Lab 07.02 Egress Metering in Virtual Network
 
-# Lab 07.03 Configure Encryption for a VIrtual Subnet
+# Lab 07.03 Configure Encryption for a Virtual Subnet
 
 # Lab 07.04 Update the Network Controller Server Certificate
