@@ -2070,8 +2070,8 @@ function New-AdminCenterVM {
 
         # Enabling Remote Access on Admincenter VM
         Write-Verbose "Enabling Remote Access"
-        Enable-WindowsOptionalFeature -Path C:\TempBGPMount -FeatureName RasRoutingProtocols -All -LimitAccess | Out-Null
-        Enable-WindowsOptionalFeature -Path C:\TempBGPMount -FeatureName RemoteAccessPowerShell -All -LimitAccess | Out-Null
+        Enable-WindowsOptionalFeature -Path C:\TempWACMount -FeatureName RasRoutingProtocols -All -LimitAccess | Out-Null
+        Enable-WindowsOptionalFeature -Path C:\TempWACMount -FeatureName RemoteAccessPowerShell -All -LimitAccess | Out-Null
 
         # Save Customizations and then dismount.
 
@@ -2184,7 +2184,7 @@ function New-AdminCenterVM {
             $params = @{
 
                 BGPIdentifier  = $WACIP
-                LocalASN       = $SDNConfig.WACASN
+                LocalASN       = 64522
                 TransitRouting = 'Enabled'
                 ClusterId      = 1
                 RouteReflector = 'Enabled'
@@ -2599,7 +2599,22 @@ function New-ConsoleVM {
             $PathResolve = Resolve-Path -Path C:\RSAT\*.msu
             Unblock-File -Path $PathResolve -Confirm:$false | Out-Null
             $arguments = '/quiet /norestart'
-            Start-Process -FilePath $PathResolve -ArgumentList $arguments -PassThru | Wait-Process      
+            Start-Process -FilePath $PathResolve -ArgumentList $arguments -PassThru | Wait-Process     
+            
+            <# Install Network Controller Features on Demand RSAT
+            try {
+                $ErrorActionPreference = "SilentlyContinue"
+                $expression = "DISM.exe /Online /add-capability /CapabilityName:Rsat.NetworkController.Tools~~~~0.0.1.0"                
+                Invoke-Expression -Command $expression
+                $ErrorActionPreference = "Stop"
+            }
+            catch {
+
+                Add-Type -AssemblyName System.Windows.Forms
+                Add-Type -AssemblyName PresentationFramework
+                [System.Windows.MessageBox]::Show('Network Controller Tools failed to install. This is most likely due to lack of a internet connection. You will need to install the Network Controller Features on Demand package manually.', 'Features on Demand: Network Controller', 'OK', 'Warning')
+                $ErrorActionPreference = "Stop"
+            } #>
     
             # Enabling Hyper-V Tools
 
@@ -2719,7 +2734,7 @@ function New-ConsoleVM {
             -Value ("https://github.com/Microsoft/SDN") -Force | Out-Null    
 
         # Update Trusted Hosts
-        
+
         Write-Verbose "Configuring WSMAN Trusted Hosts"
         Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force
     

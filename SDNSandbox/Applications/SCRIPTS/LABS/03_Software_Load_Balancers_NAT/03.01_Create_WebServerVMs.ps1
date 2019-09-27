@@ -345,7 +345,7 @@ $ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkControl
 $ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
 
 $vmnicproperties.IpConfigurations = @($ipconfiguration)
-New-NetworkControllerNetworkInterface –ResourceID "WebServerVM1_Ethernet1" –Properties $vmnicproperties –ConnectionUri $uri -Force
+New-NetworkControllerNetworkInterface -ResourceID "WebServerVM1_Ethernet1" -Properties $vmnicproperties -ConnectionUri $uri -Force
 
 $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId WebServerVM1_Ethernet1
 

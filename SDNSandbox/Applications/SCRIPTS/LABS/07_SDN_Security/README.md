@@ -2,7 +2,7 @@
 
 ## Objective
 
-In this series of exercises, you will learn to configure software load balancing, inbound NAT, outbound NAT, as well as deploy iDNS, and guest clusters with a floating IP.
+In this series of exercises, you will learn to use User Access Control lists (think Firewall\Network Security Groups), Egress Metering for VIrtual Networks, Encrypting Virtual Subnets, 
 
 # Lab 07.01 User Access Control Lists (ACLs)
 
@@ -10,4 +10,4 @@ In this series of exercises, you will learn to configure software load balancing
 
 # Lab 07.03 Configure Encryption for a Virtual Subnet
 
-# Lab 07.04 Update the Network Controller Server Certificate
+# Lab 07.04 Update the Network Controller Server Certificate - TBD
