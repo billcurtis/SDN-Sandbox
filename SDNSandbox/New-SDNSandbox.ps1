@@ -811,6 +811,14 @@ function New-NATSwitch {
     Add-VMNetworkAdapter @params -Name VLAN200 -DeviceNaming On -SwitchName $SwitchName
     Get-VM @params | Get-VMNetworkAdapter -Name VLAN200 | Set-VMNetworkAdapter -MacAddressSpoofing On
     Get-VM @params | Get-VMNetworkAdapter -Name VLAN200 | Set-VMNetworkAdapterVlan -Access -VlanId $SDNConfig.vlan200VLAN | Out-Null    
+
+    
+    #Create Simulated Internet NIC in order for NAT to work from L3 Connections
+
+    Add-VMNetworkAdapter @params -Name simInternet -DeviceNaming On -SwitchName $SwitchName
+    Get-VM @params | Get-VMNetworkAdapter -Name simInternet | Set-VMNetworkAdapter -MacAddressSpoofing On
+    Get-VM @params | Get-VMNetworkAdapter -Name simInternet | Set-VMNetworkAdapterVlan -Access -VlanId $SDNConfig.simInternetVLAN | Out-Null
+
     
 }  
     
@@ -1046,6 +1054,9 @@ function Set-SDNMGMT {
                 $vlanGW = $SDNConfig.BGPRouterIP_VLAN200.TrimEnd("/24")
                 $provpfx = $SDNConfig.BGPRouterIP_ProviderNetwork.Split("/")[1]
                 $vlanpfx = $SDNConfig.BGPRouterIP_VLAN200.Split("/")[1]
+                $simInternetIP = $SDNConfig.BGPRouterIP_SimulatedInternet.TrimEnd("1/24") + "254"
+                $simInternetGW = $SDNConfig.BGPRouterIP_SimulatedInternet.TrimEnd("/24")
+                $simInternetPFX = $SDNConfig.BGPRouterIP_SimulatedInternet.Split("/")[1]
 
                 New-VMSwitch -SwitchName NAT -SwitchType Internal | Out-Null
                 New-NetIPAddress -IPAddress $natIP -PrefixLength $Prefix -InterfaceAlias "vEthernet (NAT)" | Out-Null
@@ -1074,6 +1085,18 @@ function Set-SDNMGMT {
                 $index = (Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.netconnectionid -eq "VLAN200" }).InterfaceIndex
                 $NetInterface = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.InterfaceIndex -eq $index }     
                 $NetInterface.SetGateways($vlanGW) | Out-Null
+
+                $VerbosePreference = "Continue"
+                Write-Verbose "Configuring simulatedInternet NIC on $env:COMPUTERNAME"
+                $VerbosePreference = "SilentlyContinue"
+
+                $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object { $_.RegistryValue -eq "simInternet" }
+                Rename-NetAdapter -name $NIC.name -newname "simInternet" | Out-Null
+                New-NetIPAddress -InterfaceAlias "simInternet" –IPAddress $simInternetIP -PrefixLength $simInternetPFX | Out-Null
+
+                $index = (Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.netconnectionid -eq "simInternet" }).InterfaceIndex
+                $NetInterface = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.InterfaceIndex -eq $index }     
+                $NetInterface.SetGateways($simInternetGW) | Out-Null
 
                 #Enable Large MTU
 
@@ -1674,8 +1697,11 @@ function New-RouterVM {
         Add-VMNetworkAdapter -VMName $VMName -Name Mgmt -SwitchName vSwitch-Fabric -DeviceNaming On
         Add-VMNetworkAdapter -VMName $VMName -Name Provider -SwitchName vSwitch-Fabric -DeviceNaming On
         Add-VMNetworkAdapter -VMName $VMName -Name VLAN200 -SwitchName vSwitch-Fabric -DeviceNaming On
+        Add-VMNetworkAdapter -VMName $VMName -Name SIMInternet -SwitchName vSwitch-Fabric -DeviceNaming On
         Set-VMNetworkAdapterVlan -VMName $VMName -VMNetworkAdapterName Provider -Access -VlanId $SDNConfig.providerVLAN
-        Set-VMNetworkAdapterVlan -VMName $VMName -VMNetworkAdapterName VLAN200 -Access -VlanId $SDNConfig.vlan200VLAN    
+        Set-VMNetworkAdapterVlan -VMName $VMName -VMNetworkAdapterName VLAN200 -Access -VlanId $SDNConfig.vlan200VLAN
+        Set-VMNetworkAdapterVlan -VMName $VMName -VMNetworkAdapterName SIMInternet -Access -VlanId $SDNConfig.simInternetVLAN
+           
     
         # Add NAT Adapter
 
@@ -1785,6 +1811,8 @@ function New-RouterVM {
             $PNVPFX = $SDNConfig.BGPRouterIP_ProviderNetwork.Split("/")[1]
             $VLANIP = $SDNConfig.BGPRouterIP_VLAN200.Split("/")[0]
             $VLANPFX = $SDNConfig.BGPRouterIP_VLAN200.Split("/")[1]
+            $simInternetIP = $SDNConfig.BGPRouterIP_SimulatedInternet.Split("/")[0]
+            $simInternetPFX = $SDNConfig.BGPRouterIP_SimulatedInternet.Split("/")[1]
     
             # Renaming NetAdapters and setting up the IPs inside the VM using CDN parameters
 
@@ -1799,7 +1827,10 @@ function New-RouterVM {
             New-NetIPAddress -InterfaceAlias "PROVIDER" –IPAddress $PNVIP -PrefixLength $PNVPFX | Out-Null
             $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object { $_.RegistryValue -eq "VLAN200" }
             Rename-NetAdapter -name $NIC.name -newname "VLAN200" | Out-Null
-            New-NetIPAddress -InterfaceAlias "VLAN200" –IPAddress $VLANIP -PrefixLength $VLANPFX | Out-Null    
+            New-NetIPAddress -InterfaceAlias "VLAN200" –IPAddress $VLANIP -PrefixLength $VLANPFX | Out-Null
+            $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object { $_.RegistryValue -eq "SIMInternet" }
+            Rename-NetAdapter -name $NIC.name -newname "SIMInternet" | Out-Null
+            New-NetIPAddress -InterfaceAlias "SIMInternet" –IPAddress $simInternetIP -PrefixLength $simInternetPFX | Out-Null      
     
             # if NAT is selected, configure the adapter
        
@@ -2614,7 +2645,7 @@ function New-ConsoleVM {
                 Add-Type -AssemblyName PresentationFramework
                 [System.Windows.MessageBox]::Show('Network Controller Tools failed to install. This is most likely due to lack of a internet connection. You will need to install the Network Controller Features on Demand package manually.', 'Features on Demand: Network Controller', 'OK', 'Warning')
                 $ErrorActionPreference = "Stop"
-            } #>
+            }#>
     
             # Enabling Hyper-V Tools
 
@@ -2737,6 +2768,14 @@ function New-ConsoleVM {
 
         Write-Verbose "Configuring WSMAN Trusted Hosts"
         Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force
+
+        # Install NC Tools (Features on Demand). Note will work only if internet access is available.
+        $ErrorActionPreference = "SilentlyContinue"
+        $expression = "DISM.exe /Online /add-capability /CapabilityName:Rsat.NetworkController.Tools~~~~0.0.1.0"                
+        Invoke-Expression -Command $expression
+        $ErrorActionPreference = "Stop"
+
+
     
     } -Credential $domainCred
 

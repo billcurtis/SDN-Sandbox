@@ -1,4 +1,4 @@
-# Version 1.0 - Configure-L3_sample
+# Version 1.0 - Create-L3_Gateway
 
 <#
 .SYNOPSIS 
@@ -48,7 +48,7 @@ $VerbosePreference = "Continue"
 
 # Load in the configuration file.
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
-if (!$SDNConfig) {Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file."}
+if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 
 # Set Credential Object
 
@@ -482,7 +482,7 @@ if ($configureBGP) {
 Write-Host "`n`nTesting Connection to TenantVM1..." -ForegroundColor Yellow
 $TenantVM1Connection = Test-Connection -Quiet -Count 10 -ComputerName 192.172.33.4
 
-if ($TenantVM1Connection) {Write-Host "`nSuccess" -ForegroundColor Green}
-else {Write-Host "`nFailed" -ForegroundColor Red}
+if ($TenantVM1Connection) { Write-Host "`nSuccess" -ForegroundColor Green }
+else { Write-Host "`nFailed" -ForegroundColor Red }
 
   

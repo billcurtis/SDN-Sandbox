@@ -12,12 +12,12 @@ The main types of Gateways we will look at are:
     2. GRE Gateways
     3. IPSec Gateways
 
-# Lab 4.01 L3 Gateways
+# Lab 5.01 L3 Gateways
 
 
-# Lab 4.02 GRE Gateways
+# Lab 5.02 IPSEC Gateways
 
 
-# Lab 4.03 IPSec Gateways
+# Lab 5.03 GRE Gateways
 
 
