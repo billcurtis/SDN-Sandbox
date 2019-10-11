@@ -2767,7 +2767,7 @@ function New-ConsoleVM {
         # Update Trusted Hosts
 
         Write-Verbose "Configuring WSMAN Trusted Hosts"
-        Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force
+        Set-Item WSMan:\localhost\Client\TrustedHosts * -Confirm:$false -Force 
 
         # Install NC Tools (Features on Demand). Note will work only if internet access is available.
         $ErrorActionPreference = "SilentlyContinue"

@@ -31,39 +31,53 @@ $VerbosePreference = "Continue"
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 $uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+
+# Invoking command as some NC Commands are not working even with the latest RSAT on console. #Needtofix
+
+Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
+    
+    Import-Module NetworkController
+
+    $ErrorActionPreference = "Stop"
+    $VerbosePreference = "Continue"
+
+    $uri = $using:uri
 
 
 
-# Create a Public IP Address
+    # Create a Public IP Address
 
-$publicIPProperties = new-object Microsoft.Windows.NetworkController.PublicIpAddressProperties
-$publicIPProperties.ipaddress = "40.40.40.30"
-$publicIPProperties.PublicIPAllocationMethod = "static"
-$publicIPProperties.IdleTimeoutInMinutes = 4
+    $publicIPProperties = new-object Microsoft.Windows.NetworkController.PublicIpAddressProperties
+    $publicIPProperties.ipaddress = "40.40.40.30"
+    $publicIPProperties.PublicIPAllocationMethod = "static"
+    $publicIPProperties.IdleTimeoutInMinutes = 4
 
-$param = @{
+    $param = @{
 
-    ResourceID    = 'ForwardingIP'
-    Properties    = $publicIPProperties
-    ConnectionUri = $uri
+        ResourceID    = 'ForwardingIP'
+        Properties    = $publicIPProperties
+        ConnectionUri = $uri
+
+    }
+
+    $publicIP = New-NetworkControllerPublicIpAddress @param -Force -PassInnerException
+
+
+    $nic = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid WebServerVM2_Ethernet1
+    $nic.properties.IpConfigurations[0].Properties.PublicIPAddress = $publicIP
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = $nic.ResourceId
+        Properties    = $nic.Properties
+
+    }
+
+    New-NetworkControllerNetworkInterface @param -PassInnerException -Confirm:$false -Force
 
 
 }
-
-$publicIP = New-NetworkControllerPublicIpAddress @param -Force -PassInnerException
-
-
-$nic = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid WebServerVM2_Ethernet1
-$nic.properties.IpConfigurations[0].Properties.PublicIPAddress = $publicIP
-
-$param = @{
-
-    ConnectionUri = $uri
-    ResourceId    = $nic.ResourceId
-    Properties    = $nic.Properties
-
-}
-
-New-NetworkControllerNetworkInterface @param -PassInnerException -Confirm:$false -Force
 
 

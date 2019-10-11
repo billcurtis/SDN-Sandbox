@@ -32,76 +32,88 @@ $VerbosePreference = "Continue"
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 $uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
 
-$LBResourceId = "OutboundNATMMembers" # This is the name that we are going to call the load balancer
-$VIPIP = "40.40.40.20" # This is the static VIP that we will assign from the VIP Logical Network (PublicVIP) that was created when SDN was installed.
+# Invoking command as some NC Commands are not working even with the latest RSAT on console. #Needtofix
 
-$VIPLogicalNetwork = get-networkcontrollerlogicalnetwork -ConnectionUri $uri -resourceid "PublicVIP" -PassInnerException
+Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
 
-$LoadBalancerProperties = new-object Microsoft.Windows.NetworkController.LoadBalancerProperties
+    $ErrorActionPreference = "Stop"
+    $VerbosePreference = "Continue"
 
-# Create the FrontEnd Configuration
-$FrontEndIPConfig = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfiguration
-$FrontEndIPConfig.ResourceId = "FE1"
-$FrontEndIPConfig.ResourceRef = "/loadBalancers/$LBResourceId/frontendIPConfigurations/$($FrontEndIPConfig.ResourceId)"
+    $uri = $using:uri
 
-$FrontEndIPConfig.Properties = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfigurationProperties
-$FrontEndIPConfig.Properties.Subnet = new-object Microsoft.Windows.NetworkController.Subnet
-$FrontEndIPConfig.Properties.Subnet.ResourceRef = $VIPLogicalNetwork.Properties.Subnets[0].ResourceRef
-$FrontEndIPConfig.Properties.PrivateIPAddress = $VIPIP
-$FrontEndIPConfig.Properties.PrivateIPAllocationMethod = "Static"
+    $LBResourceId = "OutboundNATMMembers" # This is the name that we are going to call the load balancer
+    $VIPIP = "40.40.40.20" # This is the static VIP that we will assign from the VIP Logical Network (PublicVIP) that was created when SDN was installed.
 
-$LoadBalancerProperties.FrontEndIPConfigurations += $FrontEndIPConfig
+    $VIPLogicalNetwork = Get-NetworkControllerLogicalNetwork -ConnectionUri $uri -resourceid "PublicVIP" -PassInnerException
 
-# Create the BackEnd Configuration
+    $LoadBalancerProperties = New-Object Microsoft.Windows.NetworkController.LoadBalancerProperties
 
-$BackEndAddressPool = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPool
-$BackEndAddressPool.ResourceId = "BE1"
-$BackEndAddressPool.ResourceRef = "/loadBalancers/$LBResourceId/backendAddressPools/$($BackEndAddressPool.ResourceId)"
-$BackEndAddressPool.Properties = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPoolProperties
+    # Create the FrontEnd Configuration
+    $FrontEndIPConfig = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfiguration
+    $FrontEndIPConfig.ResourceId = "FE1"
+    $FrontEndIPConfig.ResourceRef = "/loadBalancers/$LBResourceId/frontendIPConfigurations/$($FrontEndIPConfig.ResourceId)"
 
-$LoadBalancerProperties.backendAddressPools += $BackEndAddressPool
+    $FrontEndIPConfig.Properties = new-objectMicrosoft.Windows.NetworkController.LoadBalancerFrontendIpConfigurationProperties
+    $FrontEndIPConfig.Properties.Subnet = New-Object Microsoft.Windows.NetworkController.Subnet
+    $FrontEndIPConfig.Properties.Subnet.ResourceRef = $VIPLogicalNetwork.Properties.Subnets[0].ResourceRef
+    $FrontEndIPConfig.Properties.PrivateIPAddress = $VIPIP
+    $FrontEndIPConfig.Properties.PrivateIPAllocationMethod = "Static"
 
-# Create the NAT Rule
+    $LoadBalancerProperties.FrontEndIPConfigurations += $FrontEndIPConfig
 
-$OutboundNAT = new-object Microsoft.Windows.NetworkController.LoadBalancerOutboundNatRule
-$OutboundNAT.ResourceId = "onat1"
+    # Create the BackEnd Configuration
 
-$OutboundNAT.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerOutboundNatRuleProperties
-$OutboundNAT.properties.frontendipconfigurations += $FrontEndIPConfig
-$OutboundNAT.properties.backendaddresspool = $BackEndAddressPool
-$OutboundNAT.properties.protocol = "ALL"
+    $BackEndAddressPool = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPool
+    $BackEndAddressPool.ResourceId = "BE1"
+    $BackEndAddressPool.ResourceRef = "/loadBalancers/$LBResourceId/backendAddressPools/$($BackEndAddressPool.ResourceId)"
+    $BackEndAddressPool.Properties = New-Object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPoolProperties
 
-$LoadBalancerProperties.OutboundNatRules += $OutboundNAT
+    $LoadBalancerProperties.backendAddressPools += $BackEndAddressPool
 
-# Create the Load Balancer
+    # Create the NAT Rule
 
-$param = @{
+    $OutboundNAT = New-Object Microsoft.Windows.NetworkController.LoadBalancerOutboundNatRule
+    $OutboundNAT.ResourceId = "onat1"
 
-    ConnectionUri = $uri
-    ResourceId    = $LBResourceId
-    Properties    = $LoadBalancerProperties
+    $OutboundNAT.properties = New-Object Microsoft.Windows.NetworkController.LoadBalancerOutboundNatRuleProperties
+    $OutboundNAT.properties.frontendipconfigurations += $FrontEndIPConfig
+    $OutboundNAT.properties.backendaddresspool = $BackEndAddressPool
+    $OutboundNAT.properties.protocol = "ALL"
+
+    $LoadBalancerProperties.OutboundNatRules += $OutboundNAT
+
+    # Create the Load Balancer
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = $LBResourceId
+        Properties    = $LoadBalancerProperties
+
+    }
+
+    $LoadBalancerResource = New-NetworkControllerLoadBalancer @param -Force -PassInnerException
+
+
+    # Add to Network Interface attached to WebServerVM1 
+
+    $lb = Get-NetworkControllerLoadBalancer -ResourceId $LBResourceId -ConnectionUri $uri
+
+    # Add Configuration to WebServerVM1_Ethernet1
+
+    $nic1 = Get-NetworkControllerNetworkInterface  -connectionuri $uri -resourceid "WebServerVM1_Ethernet1"
+    $nic1.properties.IpConfigurations[0].properties.LoadBalancerBackendAddressPools += $lb.properties.backendaddresspools[0] 
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = "WebServerVM1_Ethernet1" 
+        Properties    = $nic1.properties
+
+    }
+
+    New-NetworkControllerNetworkInterface @param -force
 
 }
-
-$LoadBalancerResource = New-NetworkControllerLoadBalancer @param -Force -PassInnerException
-
-
-# Add to Network Interface attached to WebServerVM1 
-
-$lb = Get-NetworkControllerLoadBalancer -ResourceId $LBResourceId -ConnectionUri $uri
-
-# Add Configuration to WebServerVM1_Ethernet1
-
-$nic1 = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid "WebServerVM1_Ethernet1"
-$nic1.properties.IpConfigurations[0].properties.LoadBalancerBackendAddressPools += $lb.properties.backendaddresspools[0] 
-
-$param = @{
-
-    ConnectionUri = $uri
-    ResourceId    = "WebServerVM1_Ethernet1" 
-    Properties    = $nic1.properties
-
-}
-
-new-networkcontrollernetworkinterface @param -force

@@ -31,153 +31,168 @@ $VerbosePreference = "Continue"
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 $uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+
+# Invoking command as some NC Commands are not working even with the latest RSAT on console. #Needtofix
+
+Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
+
+    Import-Module NetworkController
+
+    $ErrorActionPreference = "Stop"
+    $VerbosePreference = "Continue"
+
+    $uri = $using:urie
 
 
-# Load Balancer Name
+    # Load Balancer Name
 
-$ResourceID = 'WEBLB'
+    $ResourceID = 'WEBLB'
 
         
-# Create VIP (Public IP)
+    # Create VIP (Public IP)
 
-$publicIPProperties = new-object Microsoft.Windows.NetworkController.PublicIpAddressProperties
-$publicIPProperties.PublicIPAllocationMethod = "dynamic"
-$publicIPProperties.IdleTimeoutInMinutes = 4
+    $publicIPProperties = new-object Microsoft.Windows.NetworkController.PublicIpAddressProperties
+    $publicIPProperties.PublicIPAllocationMethod = "dynamic"
+    $publicIPProperties.IdleTimeoutInMinutes = 4
 
-$param = @{
+    $param = @{
 
-    ResourceId    = "WEBLB-IP" 
-    Properties    = $publicIPProperties
-    ConnectionUri = $uri
+        ResourceId    = "WEBLB-IP" 
+        Properties    = $publicIPProperties
+        ConnectionUri = $uri
 
-}
+    }
 
-$publicIP = New-NetworkControllerPublicIpAddress @param -force
+    $publicIP = New-NetworkControllerPublicIpAddress @param -force
         
 
-# Clear variables
+    # Clear variables
 
-$LoadBalancerProperties = $null
-$FrontEnd = $null
-$BackEnd = $null
-$lbrule = $null
+    $LoadBalancerProperties = $null
+    $FrontEnd = $null
+    $BackEnd = $null
+    $lbrule = $null
 
-# Set Variables
+    # Set Variables
 
-$FrontEndName = "DefaultAll"
-$BackendName = "Backend1"
+    $FrontEndName = "DefaultAll"
+    $BackendName = "Backend1"
 
-$LoadBalancerProperties = new-object Microsoft.Windows.NetworkController.LoadBalancerProperties
+    $LoadBalancerProperties = new-object Microsoft.Windows.NetworkController.LoadBalancerProperties
 
-# Create a front-end IP configuration
+    # Create a front-end IP configuration
 
-$LoadBalancerProperties.frontendipconfigurations += $FrontEnd = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfiguration
-$FrontEnd.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfigurationProperties
-$FrontEnd.resourceId = $FrontEndName
-$FrontEnd.ResourceRef = "/loadbalancers/$Resourceid/frontendipconfigurations/$FrontEndName"
-$FrontEnd.properties.PublicIPAddress = $PublicIP
+    $LoadBalancerProperties.frontendipconfigurations += $FrontEnd = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfiguration
+    $FrontEnd.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfigurationProperties
+    $FrontEnd.resourceId = $FrontEndName
+    $FrontEnd.ResourceRef = "/loadbalancers/$Resourceid/frontendipconfigurations/$FrontEndName"
+    $FrontEnd.properties.PublicIPAddress = $PublicIP
 
-# Create a back-end address pool
+    # Create a back-end address pool
 
-$BackEnd = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPool
-$BackEnd.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPoolProperties
-$BackEnd.resourceId = $BackendName
-$BackEnd.ResourceRef = "/loadbalancers/$Resourceid/BackEndAddressPools/$BackendName"
-$LoadBalancerProperties.backendAddressPools += $BackEnd
+    $BackEnd = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPool
+    $BackEnd.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPoolProperties
+    $BackEnd.resourceId = $BackendName
+    $BackEnd.ResourceRef = "/loadbalancers/$Resourceid/BackEndAddressPools/$BackendName"
+    $LoadBalancerProperties.backendAddressPools += $BackEnd
 
-# Create the Load Balancing Rules
+    # Create the Load Balancing Rules
 
-# This rule will allow port 80 traffic going to the VIP through to the one of the Web Servers.
+    # This rule will allow port 80 traffic going to the VIP through to the one of the Web Servers.
 
-$LoadBalancerProperties.loadbalancingRules += $lbrule = new-object Microsoft.Windows.NetworkController.LoadBalancingRule
-$lbrule.properties = new-object Microsoft.Windows.NetworkController.LoadBalancingRuleProperties
-$lbrule.ResourceId = "webserver1"
-$lbrule.properties.frontendipconfigurations += $FrontEnd
-$lbrule.properties.backendaddresspool = $BackEnd 
-$lbrule.properties.protocol = "TCP"
-$lbrule.properties.frontendPort = 80
-$lbrule.properties.backendPort = 80
-$lbrule.properties.IdleTimeoutInMinutes = 4
+    $LoadBalancerProperties.loadbalancingRules += $lbrule = new-object Microsoft.Windows.NetworkController.LoadBalancingRule
+    $lbrule.properties = new-object Microsoft.Windows.NetworkController.LoadBalancingRuleProperties
+    $lbrule.ResourceId = "webserver1"
+    $lbrule.properties.frontendipconfigurations += $FrontEnd
+    $lbrule.properties.backendaddresspool = $BackEnd 
+    $lbrule.properties.protocol = "TCP"
+    $lbrule.properties.frontendPort = 80
+    $lbrule.properties.backendPort = 80
+    $lbrule.properties.IdleTimeoutInMinutes = 4
 
-# This rule will allow port 3389 traffic going through the VIP through to one of the Web Servers.
+    # This rule will allow port 3389 traffic going through the VIP through to one of the Web Servers.
 
-$LoadBalancerProperties.loadbalancingRules += $lbrule = new-object Microsoft.Windows.NetworkController.LoadBalancingRule
-$lbrule.properties = new-object Microsoft.Windows.NetworkController.LoadBalancingRuleProperties
-$lbrule.ResourceId = "RDP"
-$lbrule.properties.frontendipconfigurations += $FrontEnd
-$lbrule.properties.backendaddresspool = $BackEnd 
-$lbrule.properties.protocol = "TCP"
-$lbrule.properties.frontendPort = 3389
-$lbrule.properties.backendPort = 3389
-$lbrule.properties.IdleTimeoutInMinutes = 4
-
-
-# Create a health probe
-
-$Probe = new-object Microsoft.Windows.NetworkController.LoadBalancerProbe
-$Probe.ResourceId = "Probe1"
-$Probe.ResourceRef = "/loadBalancers/$LBResourceId/Probes/$($Probe.ResourceId)"
-
-$Probe.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerProbeProperties
-$Probe.properties.Protocol = "HTTP"
-$Probe.properties.Port = "80"
-$Probe.properties.RequestPath = "/"
-$Probe.properties.IntervalInSeconds = 5
-$Probe.properties.NumberOfProbes = 11
-
-$LoadBalancerProperties.Probes += $Probe
+    $LoadBalancerProperties.loadbalancingRules += $lbrule = new-object Microsoft.Windows.NetworkController.LoadBalancingRule
+    $lbrule.properties = new-object Microsoft.Windows.NetworkController.LoadBalancingRuleProperties
+    $lbrule.ResourceId = "RDP"
+    $lbrule.properties.frontendipconfigurations += $FrontEnd
+    $lbrule.properties.backendaddresspool = $BackEnd 
+    $lbrule.properties.protocol = "TCP"
+    $lbrule.properties.frontendPort = 3389
+    $lbrule.properties.backendPort = 3389
+    $lbrule.properties.IdleTimeoutInMinutes = 4
 
 
-# Create WEBLB
+    # Create a health probe
 
-$param = @{
+    $Probe = new-object Microsoft.Windows.NetworkController.LoadBalancerProbe
+    $Probe.ResourceId = "Probe1"
+    $Probe.ResourceRef = "/loadBalancers/$LBResourceId/Probes/$($Probe.ResourceId)"
 
-    ConnectionUri = $uri
-    ResourceId    = $ResourceID
-    Properties    = $LoadBalancerProperties
+    $Probe.properties = new-object Microsoft.Windows.NetworkController.LoadBalancerProbeProperties
+    $Probe.properties.Protocol = "HTTP"
+    $Probe.properties.Port = "80"
+    $Probe.properties.RequestPath = "/"
+    $Probe.properties.IntervalInSeconds = 5
+    $Probe.properties.NumberOfProbes = 11
+
+    $LoadBalancerProperties.Probes += $Probe
+
+
+    # Create WEBLB
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = $ResourceID
+        Properties    = $LoadBalancerProperties
+
+    }
+
+    $lb = New-NetworkControllerLoadBalancer @param -Force
+
+
+
+    # Add Network Interfaces attached to WebServerVM1 and WebServerVM2
+
+    $lbresourceid = "WEBLB"
+    $lb = (Invoke-WebRequest -Headers @{"Accept" = "application/json" } -ContentType "application/json; charset=UTF-8" -Method "Get" -Uri "$uri/Networking/v1/loadbalancers/$lbresourceid" -DisableKeepAlive -UseBasicParsing).content | convertfrom-json
+
+    # Add Configuration to WebServerVM1_Ethernet1
+
+    $nic1 = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid "WebServerVM1_Ethernet1"
+    $nic1.properties.IpConfigurations[0].properties.LoadBalancerBackendAddressPools += $lb.properties.backendaddresspools[0] 
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = "WebServerVM1_Ethernet1" 
+        Properties    = $nic1.properties
+
+    }
+
+    new-networkcontrollernetworkinterface @param -force
+
+    # Add Configuration to WebServerVM2_Ethernet1
+
+    $nic2 = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid "WebServerVM2_Ethernet1"
+    $nic2.properties.IpConfigurations[0].properties.LoadBalancerBackendAddressPools += $lb.properties.backendaddresspools[0] 
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = "WebServerVM2_Ethernet1" 
+        Properties    = $nic2.properties
+
+    }
+
+    new-networkcontrollernetworkinterface @param -force
+
+    # Get Public IP Address Assigned
+
+    $assignedIP = (Get-NetworkControllerPublicIpAddress -ResourceId WEBLB-IP -ConnectionUri $uri).properties.ipaddress
+    Write-Host "Your VIP for your WEBServer is $assignedIP" -ForegroundColor Green
+
 
 }
-
-$lb = New-NetworkControllerLoadBalancer @param -Force
-
-
-
-# Add Network Interfaces attached to WebServerVM1 and WebServerVM2
-
-$lbresourceid = "WEBLB"
-$lb = (Invoke-WebRequest -Headers @{"Accept" = "application/json" } -ContentType "application/json; charset=UTF-8" -Method "Get" -Uri "$uri/Networking/v1/loadbalancers/$lbresourceid" -DisableKeepAlive -UseBasicParsing).content | convertfrom-json
-
-# Add Configuration to WebServerVM1_Ethernet1
-
-$nic1 = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid "WebServerVM1_Ethernet1"
-$nic1.properties.IpConfigurations[0].properties.LoadBalancerBackendAddressPools += $lb.properties.backendaddresspools[0] 
-
-$param = @{
-
-    ConnectionUri = $uri
-    ResourceId = "WebServerVM1_Ethernet1" 
-    Properties = $nic1.properties
-
-}
-
-new-networkcontrollernetworkinterface @param -force
-
-# Add Configuration to WebServerVM2_Ethernet1
-
-$nic2 = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid "WebServerVM2_Ethernet1"
-$nic2.properties.IpConfigurations[0].properties.LoadBalancerBackendAddressPools += $lb.properties.backendaddresspools[0] 
-
-$param = @{
-
-    ConnectionUri = $uri
-    ResourceId = "WebServerVM2_Ethernet1" 
-    Properties = $nic2.properties
-
-}
-
-new-networkcontrollernetworkinterface @param -force
-
-# Get Public IP Address Assigned
-
-$assignedIP = (Get-NetworkControllerPublicIpAddress -ResourceId WEBLB-IP -ConnectionUri $uri).properties.ipaddress
-Write-Host "Your VIP for your WEBServer is $assignedIP" -ForegroundColor Green
