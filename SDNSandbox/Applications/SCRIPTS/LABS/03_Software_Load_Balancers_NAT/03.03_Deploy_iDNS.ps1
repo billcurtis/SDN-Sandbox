@@ -142,7 +142,7 @@ foreach ($SDNHost in $SDNHosts) {
         New-ItemProperty -Name Port -Value 53 -PropertyType DWord -path $DNSProxyService -Force  | Out-Null
         New-ItemProperty -Name ProxyPort -Value 53 -PropertyType DWord -Path $DNSProxyService -Force  | Out-Null
         New-ItemProperty -Name IP -Value "169.254.169.254" -PropertyType String -Path $DNSProxyService -Force  | Out-Null
-        New-ItemProperty -Name MAC -Value “aa-bb-cc-aa-bb-cc” -PropertyType String -Path $DNSProxyService -Force | Out-Null
+        New-ItemProperty -Name MAC -Value "aa-bb-cc-aa-bb-cc" -PropertyType String -Path $DNSProxyService -Force | Out-Null
 
 
         $DNSProxy = "HKLM:\SYSTEM\CurrentControlSet\Services\DNSProxy\Parameters"

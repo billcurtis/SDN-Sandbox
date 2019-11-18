@@ -1,4 +1,4 @@
-# Version 1.0 - Configure-L3_sample
+# Version 1.0 - Create-L3_Gateway
 
 <#
 .SYNOPSIS 
@@ -48,7 +48,7 @@ $VerbosePreference = "Continue"
 
 # Load in the configuration file.
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
-if (!$SDNConfig) {Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file."}
+if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 
 # Set Credential Object
 
@@ -60,8 +60,8 @@ $localCred = new-object -typename System.Management.Automation.PSCredential `
 ####################
 
 $uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"  # This is the URI for Network Controller
-$VMNetwork = "VMNetwork1"                          # This is the VM Network that will use the L3 Gateway
-$VMSubnet = "VMSubnet1"                            # This is the VM Subnet that will use the L3 Gateway
+$VMNetwork = "TenantNetwork1"                      # This is the VM Network that will use the L3 Gateway
+$VMSubnet = "TenantSubnet1"                        # This is the VM Subnet that will use the L3 Gateway
 $vGatewayName = "L3Connection"                     # Name that will be used for the Gateway resource ID. This can be any string.
 $vLogicalNetName = "VLAN_200_Network"              # Name that will be used for the Logical Network that will be created for the L3 Gateway. This can be any string.
 $vLogicalSubnetName = "VLAN_200_Subnet"            # Name that will be used for the Logical Subnet that will be created for the L3 Gateway. This can be any string.
@@ -91,7 +91,7 @@ $configureBGP = $true                               # Specifies whether or not t
 $intBGPASN = "64513"                                # This BGP ASN is the BGP Router the ASN of the L3 Connection.
 $intBGPName = "L3BGP"                               # This is a string name value to assign as the Resource ID for the L3 BGP Router Peering Connection. This can be any string.
 $intBGPResourceID = "BgpRouterL3"                   # This is a string name value to assign as the Resource ID for the L3 BGP Router. This can be any string.
-$extBGPASN = "64522"                                # THis BGP ASN is the ASN for the BGP Router the L3 Connection will connect to. In this example, it is the BGP Router on the ADMINCENTER VM.
+$extBGPASN = "65533"                                # THis BGP ASN is the ASN for the BGP Router the L3 Connection will connect to. In this example, it is the BGP Router on the ADMINCENTER VM.
 $extBGPIP = "192.168.1.9"                           # This IP address is the address of the BGP Router that the L3 connection will peer with.
 $bgpRouterID = "192.172.33.2"                       # IP Address from the VM Network that the Gateway is using to bridge between the VM Network and the L3 Connection.
 
@@ -482,7 +482,7 @@ if ($configureBGP) {
 Write-Host "`n`nTesting Connection to TenantVM1..." -ForegroundColor Yellow
 $TenantVM1Connection = Test-Connection -Quiet -Count 10 -ComputerName 192.172.33.4
 
-if ($TenantVM1Connection) {Write-Host "`nSuccess" -ForegroundColor Green}
-else {Write-Host "`nFailed" -ForegroundColor Red}
+if ($TenantVM1Connection) { Write-Host "`nSuccess" -ForegroundColor Green }
+else { Write-Host "`nFailed" -ForegroundColor Red }
 
   

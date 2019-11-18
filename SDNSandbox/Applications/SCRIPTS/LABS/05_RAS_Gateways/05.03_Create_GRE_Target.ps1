@@ -4,7 +4,7 @@
 .SYNOPSIS 
 
     This script will provision a RRAS Router and Web Server to simulate a GRE Site for Microsoft
-    SDN RAS Gateways to create a tunnel to this server.
+    SDN RAS Gateways to connect to.
 
 #>
 
@@ -24,7 +24,7 @@ $VerbosePreference = "Continue"
 
 # Load in the configuration file.
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
-if (!$SDNConfig) {Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file."}
+if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
 
 # Set Credential Objects
 
@@ -46,7 +46,7 @@ $getNetadapter = Invoke-Command -ComputerName SDNMGMT -Credential $localCred  -S
 
     Write-Verbose "Adding a GRE Network Adapter to VM: BGP-ToR-Router"
 
-    $getNetAdapter = Get-VMNetworkAdapter -VMName 'bgp-tor-router' | Where-Object {$_.Name -eq 'GRE'}
+    $getNetAdapter = Get-VMNetworkAdapter -VMName 'bgp-tor-router' | Where-Object { $_.Name -eq 'GRE' }
 
     if (!$getNetAdapter) {
 
@@ -85,9 +85,9 @@ if (!$getNetadapter) {
         Write-Verbose "Configuring GRE NIC"
 
         $greIP = $using:greIP
-        $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object {$_.RegistryValue -eq "GRE"}
+        $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object { $_.RegistryValue -eq "GRE" }
         Rename-NetAdapter -name $NIC.name -newname "GRE" | Out-Null
-        New-NetIPAddress -InterfaceAlias "GRE" –IPAddress ($greIP.Split("/")[0]) -PrefixLength ($greIP.Split("/")[1])| Out-Null
+        New-NetIPAddress -InterfaceAlias "GRE" –IPAddress ($greIP.Split("/")[0]) -PrefixLength ($greIP.Split("/")[1]) | Out-Null
 
     }
 
@@ -115,8 +115,8 @@ Invoke-Command -ComputerName SDNMGMT -Credential $localCred -ArgumentList $SDNCo
 
     Write-Verbose "Creating Private Switch for VM: $VMName"
 
-    $switch = Get-VMSwitch | ? {$_.name -eq "vSwitch-$VMName"}
-    if (!$switch) {New-VMSwitch "vSwitch-$VMName" -SwitchType Private | Out-Null}
+    $switch = Get-VMSwitch | ? { $_.name -eq "vSwitch-$VMName" }
+    if (!$switch) { New-VMSwitch "vSwitch-$VMName" -SwitchType Private | Out-Null }
 
     # Create Host OS Disk
     Write-Verbose "Creating $VMName differencing disks"
@@ -302,72 +302,69 @@ Invoke-Command -ComputerName SDNMGMT -Credential $localCred -ArgumentList $SDNCo
     Enable-WindowsOptionalFeature -Path C:\TempMount -FeatureName RasRoutingProtocols -All -LimitAccess | Out-Null
     Enable-WindowsOptionalFeature -Path C:\TempMount -FeatureName RemoteAccessPowerShell -All -LimitAccess | Out-Null
     Dismount-WindowsImage -Path "C:\TempMount" -Save | Out-Null
-    Remove-Item "C:\TempMount"  | Out-Null
+    Remove-Item "C:\TempMount" | Out-Null
 
     #Start the VM
     Write-Verbose "Starting VM: $VMName"
     Start-VM -Name $VMName 
 
 
-    while ((Invoke-Command -VMName $VMName -Credential $localcred {"Test"} -ea SilentlyContinue) -ne "Test") {Sleep -Seconds 1}
+    while ((Invoke-Command -VMName $VMName -Credential $localcred { "Test" } -ea SilentlyContinue) -ne "Test") { Sleep -Seconds 1 }
 
     Write-Verbose "Configuring $VMName" 
 
     Invoke-Command -VMName $VMName -Credential $localCred -ScriptBlock {
 
-    $VerbosePreference = "Continue"
-    $WarningPreference = "SilentlyContinue"
+        $VerbosePreference = "Continue"
+        $WarningPreference = "SilentlyContinue"
 
-    $SDNConfig = $using:SDNConfig
-    $BackEndIP = $SDNConfig.GRETARGETIP_BE.Split("/")[0]
-    $BackEndPFX = $SDNConfig.GRETARGETIP_BE.Split("/")[1]
-    $FrontEndIP = $SDNConfig.GRETARGETIP_FE.Split("/")[0]
-    $FrontEndPFX = $SDNConfig.GRETARGETIP_FE.Split("/")[1]
+        $SDNConfig = $using:SDNConfig
+        $BackEndIP = $SDNConfig.GRETARGETIP_BE.Split("/")[0]
+        $BackEndPFX = $SDNConfig.GRETARGETIP_BE.Split("/")[1]
+        $FrontEndIP = $SDNConfig.GRETARGETIP_FE.Split("/")[0]
+        $FrontEndPFX = $SDNConfig.GRETARGETIP_FE.Split("/")[1]
 
-    Write-Verbose "Configuring Network Interfaces..." 
-    $VerbosePreference = "SilentlyContinue"
-    $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object {$_.RegistryValue -eq $env:COMPUTERNAME}
-    Rename-NetAdapter -name $NIC.name -newname $env:COMPUTERNAME  | Out-Null
-    New-NetIPAddress -InterfaceAlias $env:COMPUTERNAME –IPAddress $BackEndIP -PrefixLength $BackEndPFX  | Out-Null
-    $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object {$_.RegistryValue -eq "Internet"}
-    Rename-NetAdapter -name $NIC.name -newname "Internet"  | Out-Null
-    New-NetIPAddress -InterfaceAlias "Internet" –IPAddress $FrontEndIP -PrefixLength $FrontEndPFX  | Out-Null
-    $VerbosePreference = "Continue"
+        Write-Verbose "Configuring Network Interfaces..." 
+        $VerbosePreference = "SilentlyContinue"
+        $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object { $_.RegistryValue -eq $env:COMPUTERNAME }
+        Rename-NetAdapter -name $NIC.name -newname $env:COMPUTERNAME | Out-Null
+        New-NetIPAddress -InterfaceAlias $env:COMPUTERNAME –IPAddress $BackEndIP -PrefixLength $BackEndPFX | Out-Null
+        $NIC = Get-NetAdapterAdvancedProperty -RegistryKeyWord "HyperVNetworkAdapterName" | Where-Object { $_.RegistryValue -eq "Internet" }
+        Rename-NetAdapter -name $NIC.name -newname "Internet" | Out-Null
+        New-NetIPAddress -InterfaceAlias "Internet" –IPAddress $FrontEndIP -PrefixLength $FrontEndPFX | Out-Null
+        $VerbosePreference = "Continue"
 
-    Write-Verbose "Installing and configuring Internet Information Services..." 
-    $VerbosePreference = "SilentlyContinue"
-    Enable-WindowsOptionalFeature -online -featurename IIS-WebServer -All -LimitAccess   | Out-Null 
-    # Copy-Item -Path "c:\$env:COMPUTERNAME.png" -Destination C:\inetpub\wwwroot\iisstart.png -Force  | Out-Null
+        Write-Verbose "Installing and configuring Internet Information Services..." 
+        $VerbosePreference = "SilentlyContinue"
+        Enable-WindowsOptionalFeature -online -featurename IIS-WebServer -All -LimitAccess | Out-Null 
+        # Copy-Item -Path "c:\$env:COMPUTERNAME.png" -Destination C:\inetpub\wwwroot\iisstart.png -Force  | Out-Null
 
-    $VerbosePreference = "Continue"
-    Write-Verbose "Installing Remote Access..." 
+        $VerbosePreference = "Continue"
+        Write-Verbose "Installing Remote Access..." 
 
-    $VerbosePreference = "SilentlyContinue"
-    Install-RemoteAccess -VpnType VpnS2S  | Out-Null
-    $VerbosePreference = "Continue"
+        $VerbosePreference = "SilentlyContinue"
+        Install-RemoteAccess -VpnType VpnS2S | Out-Null
+        $VerbosePreference = "Continue"
 
-    Write-Verbose "Adding Network Routes for GRE Subnet on Internet Adapter"
-    $MGMTGW = $SDNConfig.BGPRouterIP_Internet.Split("/")[0]
+        Write-Verbose "Adding Network Routes for GRE Subnet on Internet Adapter"
+        $MGMTGW = $SDNConfig.BGPRouterIP_Internet.Split("/")[0]
 
-    $params = @{
+        $params = @{
 
-        DestinationPrefix = $SDNConfig.GRESubnet
-        NextHop           = $MGMTGW
-        InterfaceAlias    = 'Internet'
+            DestinationPrefix = $SDNConfig.GRESubnet
+            NextHop           = $MGMTGW
+            InterfaceAlias    = 'Internet'
 
-    }
+        }
 
-    New-NetRoute @params | Out-Null
+        New-NetRoute @params | Out-Null
 
-    #Enable Large MTU
-    Write-Verbose "Configuring MTU on all Adapters"
-    Get-NetAdapter | ? {$_.Status -eq "Up"} | Set-NetAdapterAdvancedProperty -RegistryValue $SDNConfig.SDNLABMTU -RegistryKeyword "*JumboPacket"
+        #Enable Large MTU
+        Write-Verbose "Configuring MTU on all Adapters"
+        Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Set-NetAdapterAdvancedProperty -RegistryValue $SDNConfig.SDNLABMTU -RegistryKeyword "*JumboPacket"
 
-} 
+    } 
 
-$ErrorActionPreference = "Continue"
-$VerbosePreference = "SilentlyContinue"
-$WarningPreference = "Continue"
 
 }
 

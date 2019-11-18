@@ -10,9 +10,9 @@
     MultipleHyperVHostExternalSwitchName = "ExternalSwitch"                      # Name of the External Hyper-V VM Switch identical on all hosts.
 
     # VHDX Paths 
-    guiVHDXPath                          = "C:\2019 VHDS\2019_GUI.vhdx"          # This value controls the location of the GUI VHDX.  
-    coreVHDXPath                         = "C:\2019 VHDS\2019_CORE.vhdx"         # This value controls the location of the Core VHDX.  
-    consoleVHDXPath                      = "C:\2019 VHDS\Console.vhdx"           # This value controls the location of the Windows 10 Console VHDX.  
+    guiVHDXPath                          = "C:\2019VHDS\GUI.vhdx"                # This value controls the location of the GUI VHDX.  
+    coreVHDXPath                         = "C:\2019VHDS\GUI.vhdx"                # This value controls the location of the Core VHDX.  
+    consoleVHDXPath                      = "C:\2019VHDS\Console.vhdx"            # This value controls the location of the Windows 10 Console VHDX.   
 
     # SDN Lab Admin Password
     SDNAdminPassword                     = "Password01"                          # Password for all local and domain accounts. Do not include special characters in the password otherwise some unattended installs may fail.
@@ -39,7 +39,7 @@
     natSubnet                            = "192.168.46.0/24"                      # This value is the subnet is the NAT router will use to route to  SDNMGMT to access the Internet. It can be any /24 subnet and is only used for routing.
     natExternalVMSwitchName              = "Internet"                             # Name of external virtual switch on the physical host that has access to the Internet.
     natVLANID                            = 131                                    # VLAN ID (if needed) that for access to the external network that requires Internet access. (Note: The network will require DHCP).
-    natDNS                               = "1.1.1.1"                              # DNS address for forwarding from Domain Controller.
+    natDNS                               = "1.1.1.1"                              # DNS address for forwarding from Domain Controller. Using Cloudflare DNS.
 
     # Global MTU
     SDNLABMTU                            = 9014                                   # Controls the MTU for all Hosts. If using multiple physical hosts. Ensure that you have configured MTU on physical nics on the hosts to match this value.
@@ -51,7 +51,7 @@
 
 
     ################################################################################################################
-    # Edit at your own risk. If you edit the subnets, ensure that you keep using the PreFix /24.
+    # Edit at your own risk. If you edit the subnets, ensure that you keep using the PreFix /24.                   #
     ################################################################################################################
 
     # SDNMGMT Management VM's Memory Settings
@@ -59,6 +59,8 @@
     MEM_BGP                              = 2GB                                     # Memory provided for the BGP-ToR-Router
     MEM_Console                          = 3GB                                     # Memory provided for the Windows 10 Console VM
     MEM_WAC                              = 2GB                                     # Memory provided for the Windows Admin Center VM
+    MEM_GRE                              = 2GB                                     # Memory provided for the gre-target VM
+    MEM_IPSEC                            = 2GB                                     # Memory provided for the ipsec-target VM
 
     #Cluster S2D Storage Disk Size (per disk)
     S2D_Disk_Size                        = 80GB                                    # Disk size for each of the 4 dynamic VHD disks attached to the 3 SDNHOST VMs that will be used to create the SDNCLUSTER
@@ -88,6 +90,7 @@
     BGPRouterIP_MGMT                     = "192.168.1.1/24"
     BGPRouterIP_ProviderNetwork          = "172.16.0.1/24"
     BGPRouterIP_VLAN200                  = "192.168.200.1/24"
+    BGPRouterIP_SimulatedInternet        = "131.127.0.1/24"
     BGPRouterASN                         = "65534"
 
 
@@ -95,6 +98,7 @@
     providerVLAN                         = 12
     vlan200VLAN                          = 200
     mgmtVLAN                             = 0
+    simInternetVLAN                      = 131
 
     # Subnets
     MGMTSubnet                           = "192.168.1.0/24"
@@ -102,6 +106,7 @@
     ProviderSubnet                       = "172.16.0.0/24"
     VLAN200Subnet                        = "192.168.200.0/24"
     VLAN200VMNetworkSubnet               = "192.168.44.0/24"
+    simInternetSubnet                    = "131.127.0.0/24"
 
     # Gateway Target IPs
     GRETARGETIP_BE                       = "192.168.233.100/24"
