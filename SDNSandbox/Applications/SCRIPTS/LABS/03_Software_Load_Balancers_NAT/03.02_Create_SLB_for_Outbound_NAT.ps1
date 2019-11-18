@@ -55,7 +55,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     $FrontEndIPConfig.ResourceId = "FE1"
     $FrontEndIPConfig.ResourceRef = "/loadBalancers/$LBResourceId/frontendIPConfigurations/$($FrontEndIPConfig.ResourceId)"
 
-    $FrontEndIPConfig.Properties = new-objectMicrosoft.Windows.NetworkController.LoadBalancerFrontendIpConfigurationProperties
+    $FrontEndIPConfig.Properties = new-object Microsoft.Windows.NetworkController.LoadBalancerFrontendIpConfigurationProperties
     $FrontEndIPConfig.Properties.Subnet = New-Object Microsoft.Windows.NetworkController.Subnet
     $FrontEndIPConfig.Properties.Subnet.ResourceRef = $VIPLogicalNetwork.Properties.Subnets[0].ResourceRef
     $FrontEndIPConfig.Properties.PrivateIPAddress = $VIPIP
@@ -65,7 +65,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
 
     # Create the BackEnd Configuration
 
-    $BackEndAddressPool = new-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPool
+    $BackEndAddressPool = New-object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPool
     $BackEndAddressPool.ResourceId = "BE1"
     $BackEndAddressPool.ResourceRef = "/loadBalancers/$LBResourceId/backendAddressPools/$($BackEndAddressPool.ResourceId)"
     $BackEndAddressPool.Properties = New-Object Microsoft.Windows.NetworkController.LoadBalancerBackendAddressPoolProperties
