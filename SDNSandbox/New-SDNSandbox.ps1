@@ -2538,7 +2538,7 @@ CertificateTemplate= WebServer
             Write-Verbose $WindowsAdminCenterGateway
             Write-Verbose "Installing and Configuring Windows Admin Center"
             $PathResolve = Resolve-Path -Path 'C:\Windows Admin Center\*.exe'
-            $arguments = "/VerySilent"
+            $arguments = "/Silent"
             Start-Process -FilePath $PathResolve -ArgumentList $arguments -PassThru 
             start-sleep -Seconds 5
             $isitinstalled = $false
@@ -2546,19 +2546,19 @@ CertificateTemplate= WebServer
             while ($isitinstalled -eq $false) {
 
                 $processTest = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
-                if ($processTest -or $i -ge 25) {
+                if ($processTest -or $i -ge 30) {
             
                     Write-Verbose -Message "Waiting for AdminCenter to finish installing. This will take awhile."
-                    if ($i -ge 19) {
+                    if ($i -ge 30) {
 
                         $processEnd = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
-                        Write-Verbose -Message "Windows Admin Center installation timed out. Ending process."
+                        Write-Verbose -Message "$i:Windows Admin Center installation timed out. Ending process."
                         if ($processEnd) { Stop-Process -Name admincenter -Force -Confirm:$false }
                         $isitinstalled = $true
 
                     }
                     $i++
-                    $i
+                   
                     Start-Sleep -Seconds 20
             
                 }
@@ -2654,10 +2654,10 @@ CertificateTemplate= WebServer
             while ($isitinstalled -eq $false) {
 
                 $processTest = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
-                if ($processTest -or $i -ge 25) {
+                if ($processTest -or $i -ge 30) {
             
                     Write-Verbose -Message "Waiting for AdminCenter to finish installing. This will take awhile."
-                    if ($i -ge 19) {
+                    if ($i -ge 30) {
 
                         $processEnd = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
                         Write-Verbose -Message "Windows Admin Center installation timed out. Ending process."
