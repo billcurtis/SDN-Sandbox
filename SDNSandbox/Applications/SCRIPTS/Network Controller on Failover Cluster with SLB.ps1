@@ -73,11 +73,11 @@ $BGPRouterIP = ($SDNConfig.BGPRouterIP_ProviderNetwork.Split("/")[0])
 $RestName = "nc.$($SDNConfig.SDNDomainFQDN)"
 $RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
 $Mux01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "120"
-$Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "4"
+$Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "40"
 $GW01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "121"
-$GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "5"
+$GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "50"
 $GW02MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "121"
-$GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "6"
+$GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "60"
 
 
 # generate sdn data answer file
@@ -90,8 +90,8 @@ $sdndata = "
     VHDFile              = 'core.vhdx'
     VMLocation           = 'C:\ClusterStorage\Volume01\SDN'
     JoinDomain           =  '$($SDNConfig.SDNDomainFQDN)'
-    SDNMacPoolStart      = '00-1D-D8-4F-00-00'
-    SDNMacPoolEnd        = '00-1D-D8-4F-FF-FF'
+    SDNMacPoolStart      = '00-1D-D9-4F-00-00'
+    SDNMacPoolEnd        = '00-1D-D9-4F-FF-FF'
     ManagementSubnet     = '$($SDNConfig.MGMTSubnet)'
     ManagementGateway    = '$($SDNConfig.SDNLABRoute)'
     ManagementDNS        = @('$($SDNConfig.SDNLABDNS)')

@@ -1,4 +1,4 @@
-# Version 1.0
+# Version 3.0
 
 <#
 .SYNOPSIS 
@@ -30,7 +30,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -48,11 +48,11 @@ if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts fo
 # Set Connection IPs
 ####################
 
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"  # This is the URI for Network Controller
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"    # This is the URI for Network Controller
 $VMNetwork = "TenantNetwork1"                      # This is the VM Network that will used for the IPSEC Gateway
 $VMSubnet = "TenantSubnet1"                        # This is the VM Subnet that will use the L3 Gateway
 $vGatewayName = "IPSECGateway"                     # Name that will be used for the Gateway resource ID. This can be any string.
-$gwConnectionName = "IKEv2Connection"              # Name that will be used for the Gateway Connection that will be created for the L3 Gateway. This can be any string.
+$gwConnectionName = "IKEv2Connection"              # Name that will be used for the Gateway Connection that will be created for the Gateway. This can be any string.
 $Secret = "Password01"                             # Ensure that this key matches the key in script:
 $ikeIP = "131.127.0.30"                            # This is the external endpoint that the GW is going to connect to. Usually this would be a public internet address.
 
@@ -69,7 +69,7 @@ $ipv4RouteDestPrefixes = @("192.168.111.0/24")      # This is the subnet on the 
 # BGP  Information
 ########################
 $intBGPASN = 05666            # This is the internal BGP ASN that the GW will use for it's BGP Router
-$extBGPASN = 64525           # This is the BGP ASN of the EXTERNAL BGP server that the GW will be connecting to.
+$extBGPASN = 64525            # This is the BGP ASN of the EXTERNAL BGP server that the GW will be connecting to.
 $intBGPIP = '192.172.33.6'    # This is the IP Address of the INTERNAL BGP Server that the remote VPN server will connect to.
 $extBGPIP = '192.168.111.100' # This is the IP Address of the EXTERNAL BGP Server that the GW will be connecting to.
 

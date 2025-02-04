@@ -1,4 +1,4 @@
-# Version 1.0
+# Version 3.0
 
 <#
 .SYNOPSIS 
@@ -14,7 +14,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -37,14 +37,14 @@ $ipsecIP = $SDNConfig.IPSECTARGETIP_BE
 
 Write-Verbose "Starting VM Build..."
 
-Invoke-Command -ComputerName AzSMGMT -Credential $localCred -ArgumentList $SDNConfig -ScriptBlock {
+Invoke-Command -ComputerName SDNMGMT -Credential $localCred -ArgumentList $SDNConfig -ScriptBlock {
 
     # Set Variables
     $SDNConfig = $using:SDNConfig
     $localCred = $using:localCred
     $ParentDiskPath = 'C:\VMs\Base\'
     $vmPath = 'D:\VMs\'
-    $OSVHDX = 'AzSHCI.vhdx'
+    $OSVHDX = 'CORE.vhdx'
     $VMName = "ipsec-target"
     $adapterIPSECname = 'IPSEC'
     

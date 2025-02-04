@@ -2034,9 +2034,9 @@ function New-RouterVM {
 
                 Write-Verbose "Peering future MUX/GWs"
 
-                $Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "4"
-                $GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "5"
-                $GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "6"
+                $Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "40"
+                $GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "50"
+                $GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "60"
 
                 $params = @{
 
@@ -2399,12 +2399,12 @@ function New-AdminCenterVM {
             Install-WindowsFeature -Name NetworkController  -IncludeAllSubFeature -IncludeManagementTools | Out-Null
 
 
-            <# Install VPN Routing
+            # Install VPN Routing
             $VerbosePreference = "Continue"
             Install-RemoteAccess -VPNType RoutingOnly | Out-Null
             $VerbosePreference = "SilentlyContinue"
             Start-Sleep -Seconds 60 
-            #>
+            
            
 
             # Install Nuget
@@ -2419,7 +2419,7 @@ function New-AdminCenterVM {
             # Request SSL Certificate for Windows Admin Center
             Write-Verbose "Generating SSL Certificate Request"
 
-            <# Create BGP Router
+            # Create BGP Router
             $params = @{
 
                 BGPIdentifier  = $WACIP
@@ -2432,7 +2432,7 @@ function New-AdminCenterVM {
 
             Add-BgpRouter @params
 
-            #>
+            
 
             $RequestInf = @"
 [Version] 
@@ -2546,14 +2546,19 @@ CertificateTemplate= WebServer
             while ($isitinstalled -eq $false) {
 
                 $processTest = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
-                if ($processTest -or $i -ge 30) {
+                if ($processTest -or $i -ge 40) {
             
                     Write-Verbose -Message "Waiting for AdminCenter to finish installing. This will take awhile."
-                    if ($i -ge 30) {
+                    if ($i -ge 40) {
 
                         $processEnd = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
                         Write-Verbose -Message "$i:Windows Admin Center installation timed out. Ending process."
-                        if ($processEnd) { Stop-Process -Name admincenter -Force -Confirm:$false }
+                        if ($processEnd) { 
+                        
+                        Stop-Process -Name admincenter -Force -Confirm:$false 
+                        Stop-Process -Name admincenter.tmp -Force -Confirm:$false 
+
+                        }
                         $isitinstalled = $true
 
                     }
@@ -2660,8 +2665,8 @@ CertificateTemplate= WebServer
                     if ($i -ge 30) {
 
                         $processEnd = Get-Process | Where-Object { $_.ProcessName -eq "admincenter" }
-                        Write-Verbose -Message "Windows Admin Center installation timed out. Ending process."
-                        if ($processEnd) { Stop-Process -Name admincenter -Force -Confirm:$false }
+                        #Write-Verbose -Message "Windows Admin Center installation timed out. Ending process."
+                        #if ($processEnd) { Stop-Process -Name admincenter -Force -Confirm:$false }
                         $isitinstalled = $true
 
                     }

@@ -1,4 +1,4 @@
-# Version 2.0 - Remove-L3-Gateway.ps1
+# Version 3.0 - Remove-L3-Gateway.ps1
 
 <#
 .SYNOPSIS 
@@ -14,7 +14,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -36,7 +36,7 @@ $localCred = new-object -typename System.Management.Automation.PSCredential `
 # Set Connection IPs
 ####################
 
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"  # This is the URI for Network Controller
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"  # This is the URI for Network Controller
 $vGatewayName = "L3Connection"                     # Name that will be used for the Gateway resource ID. This can be any string.
  
 

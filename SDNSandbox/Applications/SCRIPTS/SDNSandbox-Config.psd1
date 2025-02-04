@@ -43,7 +43,7 @@
 
 
     #SDN Provisioning
-    ProvisionLegacyNC                    = $true                             # Provisions Network Controller Automatically.
+    ProvisionLegacyNC                    = $false                             # Provisions Network Controller Automatically.
     ConfigureBGPpeering                  = $true                              # Peers the GW and MUX VMs with the BGP-ToR-Router automatically if ProvisionNC = $true
 
 

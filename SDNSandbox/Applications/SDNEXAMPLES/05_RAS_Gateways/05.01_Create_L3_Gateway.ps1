@@ -1,4 +1,4 @@
-# Version 2.0 - Create-L3_Gateway
+# Version 3.0 - Create-L3_Gateway
 
 <#
 .SYNOPSIS 
@@ -22,8 +22,7 @@
 .NOTES
 
     I have tried to comment as much as possible in this script on the parameters network controller requires
-    in order to create a L3 connection. Email sdnblackbelt@microsoft.com if you require any clarification or have 
-    questions regarding L3 Gateways.
+    in order to create a L3 connection. 
 
     To remove this configuration, run the Destroy-L3_sample.ps1 script. 
 
@@ -35,7 +34,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -59,7 +58,7 @@ $localCred = new-object -typename System.Management.Automation.PSCredential `
 # Set Connection IPs
 ####################
 
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"  # This is the URI for Network Controller
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"    # This is the URI for Network Controller
 $VMNetwork = "TenantNetwork1"                      # This is the VM Network that will use the L3 Gateway
 $VMSubnet = "TenantSubnet1"                        # This is the VM Subnet that will use the L3 Gateway
 $vGatewayName = "L3Connection"                     # Name that will be used for the Gateway resource ID. This can be any string.
@@ -75,7 +74,7 @@ $targetVLANsubnet = "192.168.200.0/24"             # This is the VLAN subnet tha
 $targetVLANGateway = "192.168.200.1"               # This is the default gateway of the VLAN subnet that your VM Network is going to attach to. It already must exist.
 $targetVLANid = 200                                # This is the VLAN ID of the VLAN subnet that your VMNetwork is going to attach to.
 $vmNetworkEndpoint = "192.168.200.254/24"          <# This is the IP Address on the VLAN subnet that the SDN Gateway will use to route traffic between the VM Network and the 
-                                                      physical network. You will need to ensure that this address is not already in use.#>
+                                                   physical network. You will need to ensure that this address is not already in use.#>
 
 # Routes
 ########
@@ -479,7 +478,7 @@ if ($configureBGP) {
 # Ping Tests to Tenant VM1 
 
 Write-Host "`n`nTesting Connection to TenantVM1..." -ForegroundColor Yellow
-$TenantVM1Connection = Test-Connection -Quiet -Count 10 -ComputerName 192.172.33.4
+$TenantVM1Connection = Test-Connection -Quiet -Count 10 -ComputerName 10.0.1.5
 
 if ($TenantVM1Connection) { Write-Host "`nSuccess" -ForegroundColor Green }
 else { Write-Host "`nFailed" -ForegroundColor Red }

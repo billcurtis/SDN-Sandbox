@@ -30,8 +30,8 @@ $VerbosePreference = "Continue"
 
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
-$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC.$($SDNConfig.SDNDomainFQDN)"
 
 # Invoking command as some NC Commands are not working even with the latest RSAT on console. #Needtofix
 

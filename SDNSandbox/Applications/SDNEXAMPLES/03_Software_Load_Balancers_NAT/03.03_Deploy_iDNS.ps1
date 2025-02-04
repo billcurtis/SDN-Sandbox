@@ -43,7 +43,7 @@ $contosodcip = "192.168.1.254"
 
 Write-Verbose "Getting URI for Network Controller"
 
-$uri = "https://nc01.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://nc.$($SDNConfig.SDNDomainFQDN)"
 
 Write-Verbose "Setting URI for the iDNS configuration settings in Network Controller"
 
