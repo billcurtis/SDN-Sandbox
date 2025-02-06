@@ -92,7 +92,7 @@ $intBGPName = "L3BGP"                               # This is a string name valu
 $intBGPResourceID = "BgpRouterL3"                   # This is a string name value to assign as the Resource ID for the L3 BGP Router. This can be any string.
 $extBGPASN = "65533"                                # THis BGP ASN is the ASN for the BGP Router the L3 Connection will connect to. In this example, it is the BGP Router on the ADMINCENTER VM.
 $extBGPIP = "192.168.1.9"                           # This IP address is the address of the BGP Router that the L3 connection will peer with.
-$bgpRouterID = "192.172.33.2"                       # IP Address from the VM Network that the Gateway is using to bridge between the VM Network and the L3 Connection.
+$bgpRouterID = "192.168.200.254"                    # IP Address from the VM Network that the Gateway is using to bridge between the VM Network and the L3 Connection.
 
 
 #########################

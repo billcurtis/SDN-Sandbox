@@ -297,8 +297,8 @@ Write-Verbose "Creating the VM Network vmNetwork1 in NC with a subnet named vmSu
 
 $VMNetworkName = "webNetwork1"
 $VMSubnetName = "webSubnet1"
-$VMNetworkPrefix = '11.0.0.0/16' 
-$VMSubnetPrefix = '11.0.1.0/24'
+$VMNetworkPrefix = '10.3.0.0/16' 
+$VMSubnetPrefix = '10.3.1.0/24'
 
 $logicalnetworks = Get-NetworkControllerLogicalNetwork -ConnectionUri $uri  
 foreach ($ln in $logicalnetworks) {  

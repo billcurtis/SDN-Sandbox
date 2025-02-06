@@ -44,7 +44,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     $uri = $using:uri
 
     $LBResourceId = "OutboundNATMMembers" # This is the name that we are going to call the load balancer
-    $VIPIP = "40.40.40.20" # This is the static VIP that we will assign from the VIP Logical Network (PublicVIP) that was created when SDN was installed.
+    $VIPIP = "10.13.13.20" # This is the static VIP that we will assign from the VIP Logical Network (PublicVIP) that was created when SDN was installed.
 
     $VIPLogicalNetwork = Get-NetworkControllerLogicalNetwork -ConnectionUri $uri -resourceid "PublicVIP" -PassInnerException
 

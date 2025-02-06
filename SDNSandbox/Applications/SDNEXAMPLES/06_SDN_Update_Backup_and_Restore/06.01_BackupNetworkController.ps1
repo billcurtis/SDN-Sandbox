@@ -18,7 +18,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -30,7 +30,7 @@ $VerbosePreference = "Continue"
 
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
 $networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
 
 # Set Credential Object

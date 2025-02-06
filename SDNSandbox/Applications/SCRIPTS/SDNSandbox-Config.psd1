@@ -87,7 +87,7 @@
     BGPRouterIP_MGMT                     = "192.168.1.1/24"
     BGPRouterIP_ProviderNetwork          = "172.16.0.1/24"
     BGPRouterIP_VLAN200                  = "192.168.200.1/24"
-    BGPRouterIP_SimulatedInternet        = "131.127.0.1/24"
+    BGPRouterIP_SimulatedInternet        = "10.10.10.1/24"
     BGPRouterASN                         = "65534"
 
 
@@ -101,23 +101,23 @@
 
     # Subnets
     MGMTSubnet                           = "192.168.1.0/24"
-    GRESubnet                            = "50.50.50.0/24"
+    GRESubnet                            = "10.11.11.0/24"
     ProviderSubnet                       = "172.16.0.0/24"
     VLAN200Subnet                        = "192.168.200.0/24"
     VLAN200VMNetworkSubnet               = "192.168.44.0/24"
-    simInternetSubnet                    = "131.127.0.0/24"
+    simInternetSubnet                    = "10.10.10.0/24"
     storageAsubnet                       = "192.168.98.0/24"
     storageBsubnet                       = "192.168.99.0/24"
 
     # Gateway Target IPs
     GRETARGETIP_BE                       = "192.168.233.100/24"
-    GRETARGETIP_FE                       = "131.127.0.35/24"
+    GRETARGETIP_FE                       = "10.11.11.35/24"
     IPSECTARGETIP_BE                     = "192.168.111.100/24"
-    IPSECTARGETIP_FE                     = "131.127.0.30/24"
+    IPSECTARGETIP_FE                     = "10.11.11.30/24"
 
     # VIP Subnets
-    PrivateVIPSubnet                     = "30.30.30.0/24" 
-    PublicVIPSubnet                      = "40.40.40.0/24"
+    PrivateVIPSubnet                     = "10.12.12.0/24" 
+    PublicVIPSubnet                      = "10.13.13.0/24"
 
     # SDN ASN
     SDNASN                               = 64512

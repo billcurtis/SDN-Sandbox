@@ -18,7 +18,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -30,8 +30,8 @@ $VerbosePreference = "Continue"
 
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
-$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC.$($SDNConfig.SDNDomainFQDN)"
 
 # Set Credential Object
 $domainCred = new-object -typename System.Management.Automation.PSCredential `
@@ -54,11 +54,11 @@ if ($prevbackups.resourceid) {
 
         # Stop the NC Host Agent and SLB Agent on all Hosts:
 
-        $AzSHOSTs = @("AzSHOST1", "AzSHOST2")
+        $SDNHOSTs = @("SDNHOST1", "SDNHOST2")
 
-        foreach ($AzSHOST in $AzSHOSTs) {
+        foreach ($SDNHOST in $SDNHOSTs) {
 
-            Invoke-Command -ComputerName $AzSHOST  -ScriptBlock {
+            Invoke-Command -ComputerName $SDNHOST  -ScriptBlock {
 
                 $VerbosePreference = "Continue"
 
@@ -77,7 +77,7 @@ if ($prevbackups.resourceid) {
         # Shutdown RAS Gateway VMs and SLBMUX VMs
 
         Write-Verbose "Shutting Down GW and Muxes"
-        Get-VM -ComputerName azshost1, azshost2 | Where-Object { $_.Name -match 'GW0' -or $_.Name -match 'Mux0' } | Stop-VM 
+        Get-VM -ComputerName sdnhost1, sdnhost2 | Where-Object { $_.Name -match 'GW0' -or $_.Name -match 'Mux0' } | Stop-VM 
         Start-Sleep -Seconds 60
 
 
@@ -94,13 +94,13 @@ if ($prevbackups.resourceid) {
 
 
         # Restart VMs
-        Get-VM -ComputerName azshost1, azshost2 | Where-Object { $_.Name -match 'GW0' -or $_.Name -match 'Mux0' } | Start-VM
+        Get-VM -ComputerName sdnhost1, sdnhost2 | Where-Object { $_.Name -match 'GW0' -or $_.Name -match 'Mux0' } | Start-VM
 
         # Restart NC Host Agent and SLB Mux
 
-        foreach ($AzSHOST in $AzSHOSTs) {
+        foreach ($sdnHOST in $sdnHOSTs) {
 
-            Invoke-Command -ComputerName $AzSHOST  -ScriptBlock {
+            Invoke-Command -ComputerName $sdnHOST  -ScriptBlock {
 
                 $VerbosePreference = "Continue"
 
@@ -118,7 +118,7 @@ if ($prevbackups.resourceid) {
 
     }
 
-    Get-VM -ComputerName azshost1, azshost2 | Where-Object { $_.Name -match 'GW0' -or $_.Name -match 'Mux0' } | Start-VM 
+    Get-VM -ComputerName sdnhost1, sdnhost2 | Where-Object { $_.Name -match 'GW0' -or $_.Name -match 'Mux0' } | Start-VM 
 
 }
 
