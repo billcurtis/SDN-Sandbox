@@ -1383,14 +1383,9 @@ function Set-SDNMGMT {
     Import-Module NetTCPIP
     $VerbosePreference = "Continue"
     $internetgw = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "1"
-    $Netroute = Get-NetRoute | Where-Object { $_.Nexthop -match $internetgw }
-    if ($Netroute) {
-
-        Write-Verbose -Message "Deleting Net-Route for Internal Network $internetgw"
-        Remove-NetRoute -NextHop $internetgw -Confirm:$False
-
-    }
-
+    Write-Verbose -Message "Deleting Net-Route for Internal Network $internetgw"
+    Get-NetRoute | Where-Object { $_.Nexthop -match $internetgw -and $_.InterfaceAlias -match "Internal" } | Remove-NetRoute -Confirm:$false 
+ 
 
     # Provision Admincenter
 
@@ -2555,8 +2550,8 @@ CertificateTemplate= WebServer
                         Write-Verbose -Message "$i:Windows Admin Center installation timed out. Ending process."
                         if ($processEnd) { 
                         
-                        Stop-Process -Name admincenter -Force -Confirm:$false 
-                        Stop-Process -Name admincenter.tmp -Force -Confirm:$false 
+                            Stop-Process -Name admincenter -Force -Confirm:$false 
+                            Stop-Process -Name admincenter.tmp -Force -Confirm:$false 
 
                         }
                         $isitinstalled = $true
@@ -3954,3 +3949,4 @@ $VerbosePreference = "SilentlyContinue"
 $WarningPreference = "Continue"
     
 #endregion     
+ 
