@@ -4,10 +4,7 @@
 <#
 .SYNOPSIS 
 
-    This script create two Windows Server (Desktop Experience) VHD files for TenantVM1 and TenantVM2, injects a unattend.xml
-    and places them in SDNCluster's Storage.
-
-    After running this script, follow the directions in the README.md file for this scenario.
+This script will install the Network Controller on a Failover Cluster with a SLB VM.
 #>
 
 

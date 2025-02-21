@@ -23,7 +23,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\NestedSDN-Config.psd1'
 
 )
 
@@ -42,10 +42,6 @@ $domainCred = new-object -typename System.Management.Automation.PSCredential `
 # Set fqdn
 $fqdn = $SDNConfig.SDNDomainFQDN
 
-# Copy VHD File 
-Write-Verbose "Copying GUI.VHDX"
-Copy-Item -Path C:\VHDs\GUI.vhdx -Destination '\\SDNCluster\ClusterStorage$\Volume01\VHD' -Force | Out-Null
-
 
 Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
@@ -56,11 +52,12 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
     # Create WebServerVM1 and WebServerVM2 VHDX files
 
-    Write-Verbose "Copying Over VHDX files for TenantVMs. This can take some time..."
+    Write-Verbose "Copying Over VHDX files for Webserver VMs. This can take some time..."
 
     $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object { $_.Name -match "Windows Server 2019" }
 
-    $csvfolder = "Volume01"
+    If ($OSVer) { $csvfolder = "S2D_vDISK1" }
+    else { $csvfolder = "Volume1" }
 
     $TenantVMs = @("WebServerVM1", "WebServerVM2")
 
@@ -89,7 +86,7 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
         $tenantpath = New-Item @params -Force
 
-        Copy-Item -Path 'C:\ClusterStorage\Volume01\VHD\GUI.VHDX' -Destination $tenantpath.FullName -Force
+        Copy-Item -Path '\\console\C$\VHDs\GUI.vhdx' -Destination $tenantpath.FullName -Force
 
         # Inject Answer File
         Write-Verbose "Injecting Answer File for WebServerVM $VMName..."
@@ -106,7 +103,7 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
         $MountPath = New-Item @params -Force
 
 
-        $ImagePath = "\\SDNHost1\c$\ClusterStorage\Volume01\$VMName\GUI.vhdx"
+        $ImagePath = "\\sdncluster\ClusterStorage`$\$csvfolder\$VMName\GUI.vhdx"
 
         $params = @{
 
@@ -235,51 +232,47 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 Write-Verbose "Creating Virtual Machines"
 
 # WebServerVM1
-New-VM -Name WebServerVM1 -ComputerName SDNHOST2 -VHDPath C:\ClusterStorage\Volume01\WebServerVM1\GUI.vhdx -MemoryStartupBytes 1GB `
-    -Generation 2 -Path C:\ClusterStorage\Volume01\WebServerVM1 | Out-Null
-
-Set-VM -Name WebServerVM1 -ComputerName SDNHOST2 -ProcessorCount 4 | Out-Null
+New-VM -Name WebServerVM1 -ComputerName SDNHOST3 -VHDPath C:\ClusterStorage\S2D_vDISK1\WebServerVM1\GUI.vhdx -MemoryStartupBytes 1GB -Generation 2 | Out-Null
+Set-VM -Name WebServerVM1 -ComputerName SDNHOST3 -ProcessorCount 4 | Out-Null
 
 # WebServerVM2
 
-New-VM -Name WebServerVM2 -ComputerName SDNHOST1 -VHDPath C:\ClusterStorage\Volume01\WebServerVM2\GUI.vhdx -MemoryStartupBytes 1GB `
-    -Generation 2 -Path C:\ClusterStorage\Volume01\WebServerVM2 | Out-Null
-
+New-VM -Name WebServerVM2 -ComputerName SDNHOST1 -VHDPath C:\ClusterStorage\S2D_vDISK1\WebServerVM2\GUI.vhdx -MemoryStartupBytes 1GB -Generation 2 | Out-Null
 Set-VM -Name WebServerVM2 -ComputerName SDNHOST1 -ProcessorCount 4
 
 
 Write-Verbose "Setting Static MAC on Web Server VMs "
 
-Set-VMNetworkAdapter -VMName WebServerVM1 -ComputerName SDNHOST2 -StaticMacAddress "00-11-22-33-44-60" | Out-Null
+Set-VMNetworkAdapter -VMName WebServerVM1 -ComputerName SDNHOST3 -StaticMacAddress "00-11-22-33-44-60" | Out-Null
 Set-VMNetworkAdapter -VMName WebServerVM2 -ComputerName SDNHOST1 -StaticMacAddress "00-11-22-33-44-61" | Out-Null
 
 Write-Verbose "Connecting VMswitch to the VMNetwork Adapters on the Web Server VMs "
 
-Get-VMNetworkAdapter -ComputerName SDNHOST2 -VMName WebServerVM1 | Connect-VMNetworkAdapter -SwitchName sdnSwitch | Out-Null
+Get-VMNetworkAdapter -ComputerName SDNHOST3 -VMName WebServerVM1 | Connect-VMNetworkAdapter -SwitchName sdnSwitch | Out-Null
 Get-VMNetworkAdapter -ComputerName SDNHOST1 -VMName WebServerVM2 | Connect-VMNetworkAdapter -SwitchName sdnSwitch | Out-Null
 
 
 
 Write-Verbose "Starting the Web server VMs"
 # Start the VMs
-Start-VM -Name WebServerVM1 -ComputerName SDNHOST2
+Start-VM -Name WebServerVM1 -ComputerName SDNHOST3
 Start-VM -Name WebServerVM2 -ComputerName SDNHOST1
 
 
 Write-Verbose "Getting MAC Addresses of the NICs for the VMs so we can create NC objects "
 # Get the MACs
-$WebServerVM1Mac = (Get-VMNetworkAdapter -VMName WebServerVM1 -ComputerName SDNHOST2).MacAddress
+$WebServerVM1Mac = (Get-VMNetworkAdapter -VMName WebServerVM1 -ComputerName SDNHOST3).MacAddress
 $WebServerVM2Mac = (Get-VMNetworkAdapter -VMName WebServerVM2 -ComputerName SDNHOST1).MacAddress
 
-Write-Verbose " Adding VMs to our SDNCluster"
+Write-Verbose " Adding VMs to our SDNCLUSTER "
 
 $VerbosePreference = "SilentlyContinue"
 Import-Module FailoverClusters
 $VerbosePreference = "Continue"
 
 
-Add-ClusterVirtualMachineRole -VMName WebServerVM1 -Cluster SDNCluster | Out-Null
-Add-ClusterVirtualMachineRole -VMName WebServerVM2 -Cluster SDNCluster | Out-Null
+Add-ClusterVirtualMachineRole -VMName WebServerVM1 -Cluster SDNCLUSTER | Out-Null
+Add-ClusterVirtualMachineRole -VMName WebServerVM2 -Cluster SDNCLUSTER | Out-Null
 
 
 # Import Network Controller Module
@@ -287,7 +280,7 @@ $VerbosePreference = "SilentlyContinue"
 Import-Module NetworkController
 $VerbosePreference = "Continue"
 
-$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
 
 
 # Create VM Network in Network Controller
@@ -297,8 +290,8 @@ Write-Verbose "Creating the VM Network vmNetwork1 in NC with a subnet named vmSu
 
 $VMNetworkName = "webNetwork1"
 $VMSubnetName = "webSubnet1"
-$VMNetworkPrefix = '10.3.0.0/16' 
-$VMSubnetPrefix = '10.3.1.0/24'
+$VMNetworkPrefix = '192.173.0.0/16' 
+$VMSubnetPrefix = '192.173.44.0/24'
 
 $logicalnetworks = Get-NetworkControllerLogicalNetwork -ConnectionUri $uri  
 foreach ($ln in $logicalnetworks) {  
@@ -344,7 +337,7 @@ $vmnicproperties.IsPrimary = $true
 $ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
 $ipconfiguration.resourceid = "WebServerVM1_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
-$ipconfiguration.properties.PrivateIPAddress = '10.3.1.4'
+$ipconfiguration.properties.PrivateIPAddress = '192.173.44.4'
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
 #$ipconfiguration.Properties.AccessControlList = $acllist
 
@@ -358,7 +351,7 @@ $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId Web
 
 Write-Verbose "Invoking command on the SDNHOST where WebServerVM1 resides. Command will set the VFP extension so WebServerVM1 will have access to the network."
 
-Invoke-Command -ComputerName SDNHOST2 -ArgumentList $nic -ScriptBlock {
+Invoke-Command -ComputerName SDNHOST3 -ArgumentList $nic -ScriptBlock {
 
     $nic = $args[0]
 
@@ -407,7 +400,7 @@ $vmnicproperties.IsPrimary = $true
 $ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
 $ipconfiguration.resourceid = "WebServerVM2_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
-$ipconfiguration.properties.PrivateIPAddress = '10.3.1.5'
+$ipconfiguration.properties.PrivateIPAddress = '192.173.44.5'
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
 #$ipconfiguration.Properties.AccessControlList = $acllist
 
