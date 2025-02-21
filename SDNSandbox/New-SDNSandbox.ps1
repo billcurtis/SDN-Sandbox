@@ -423,7 +423,10 @@ function New-NestedVM {
 
         if ($sdnHOST -eq "SDNMGMT") {
 
-            $VHDX1 = New-VHD -ParentPath $parentpath -Path "$HostVMPath\$sdnHOST.vhdx" -Differencing 
+            $VHDX1 = New-VHD -ParentPath $parentpath -Path "$HostVMPath\$sdnHOST.vhdx" -Differencing
+            Write-Verbose -Message "Resizing OS DISK"
+            Resize-VHD -Path "$HostVMPath\$sdnHOST.vhdx" -SizeBytes 130GB           
+             
             $VHDX2 = New-VHD -Path "$HostVMPath\$sdnHOST-Data.vhdx" -SizeBytes 268435456000 -Dynamic
             $NestedVMMemoryinGB = $sdnMGMTMemoryinGB
         }
@@ -1204,6 +1207,44 @@ function Set-SDNMGMT {
                 $index = (Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.netconnectionid -match "vSwitch-Fabric" }).InterfaceIndex
                 Remove-NetRoute -InterfaceIndex $index -DestinationPrefix "0.0.0.0/0" -Confirm:$false
 
+                # Resize SDNMGMT's OS partition.
+                Write-Verbose -Message "Resizing SDNMGMTS's OS partition"
+
+                $recoveryPartition = Get-Partition | Where-Object { $_.type -eq "Recovery" }
+
+                If ($recoveryPartition) {
+
+                    $params = @{
+
+                        DiskNumber      = 0
+                        PartitionNumber = $recoveryPartition.PartitionNumber 
+                        Confirm         = $false
+
+                    }
+
+                    Remove-Partition @params
+
+                }
+
+                $basicPartition = Get-Partition | Where-Object { $_.type -eq "Basic" -and $_.DiskNumber -eq 0 }
+
+                $size = Get-PartitionSupportedSize -DiskNumber 0 -PartitionNumber $basicPartition.PartitionNumber
+
+                if ($size.SizeMax -ge 10) {
+
+                    $params = @{
+
+                        DiskNumber      = 0
+                        PartitionNumber = $basicPartition.PartitionNumber 
+                        Confirm         = $false
+                        Size            = $size.SizeMax
+
+                    }
+
+                    Resize-Partition @params
+            
+                }          
+
             }
 
         }
@@ -1435,6 +1476,12 @@ function New-DCVM {
         }
 
         New-VHD  @params -Differencing | Out-Null
+
+
+        # Resize VHD
+        Write-Verbose -Message "Resizing OS DISK"
+        Resize-VHD -Path ($vmpath + $VMName + '\' + $VMName + '.vhdx') -SizeBytes 130GB
+
 
         Write-Verbose "Creating $VMName virtual machine"
         
@@ -1703,6 +1750,44 @@ function New-DCVM {
 
             if ($SDNConfig.natDNS) { Add-DnsServerForwarder $SDNConfig.natDNS }
             else { Add-DnsServerForwarder 8.8.8.8 }
+
+            # resize os disk
+            Write-Verbose -Message "Resizing OS partition"
+
+            $recoveryPartition = Get-Partition | Where-Object { $_.type -eq "Recovery" }
+
+            If ($recoveryPartition) {
+
+                $params = @{
+
+                    DiskNumber      = 0
+                    PartitionNumber = $recoveryPartition.PartitionNumber 
+                    Confirm         = $false
+
+                }
+
+                Remove-Partition @params
+
+            }
+
+            $basicPartition = Get-Partition | Where-Object { $_.type -eq "Basic" }
+
+            $size = Get-PartitionSupportedSize -DiskNumber 0 -PartitionNumber $basicPartition.PartitionNumber
+
+            if ($size.SizeMax -ge 10) {
+
+                $params = @{
+
+                    DiskNumber      = 0
+                    PartitionNumber = $basicPartition.PartitionNumber 
+                    Confirm         = $false
+                    Size            = $size.SizeMax
+
+                }
+
+                Resize-Partition @params
+            
+            }          
 
             # Create Enterprise CA 
 
@@ -2119,6 +2204,9 @@ function New-AdminCenterVM {
         Import-Module DISM
         $VerbosePreference = "Continue"
 
+        # Resize VHD
+        Resize-VHD -Path (($VHDPath) + ($VMName) + (".vhdx")) -SizeBytes 130GB
+
         Write-Verbose "Mounting and Injecting Answer File into the $VMName VM." 
         New-Item -Path "C:\TempWACMount" -ItemType Directory | Out-Null
         Mount-WindowsImage -Path "C:\TempWACMount" -Index 1 -ImagePath (($VHDPath) + ($VMName) + (".vhdx")) | Out-Null
@@ -2399,8 +2487,45 @@ function New-AdminCenterVM {
             Install-RemoteAccess -VPNType RoutingOnly | Out-Null
             $VerbosePreference = "SilentlyContinue"
             Start-Sleep -Seconds 60 
+
+            # Resize Partition
+
+            Write-Verbose -Message "Resizing Admincenter's partition"
+
+            $recoveryPartition = Get-Partition | Where-Object { $_.type -eq "Recovery" }
+
+            If ($recoveryPartition) {
+
+                $params = @{
+
+                    DiskNumber      = 0
+                    PartitionNumber = $recoveryPartition.PartitionNumber 
+                    Confirm         = $false
+
+                }
+
+                Remove-Partition @params
+
+            }
+
+            $basicPartition = Get-Partition | Where-Object { $_.type -eq "Basic" }
+
+            $size = Get-PartitionSupportedSize -DiskNumber 0 -PartitionNumber $basicPartition.PartitionNumber
+
+            if ($size.SizeMax -ge 10) {
+
+                $params = @{
+
+                    DiskNumber      = 0
+                    PartitionNumber = $basicPartition.PartitionNumber 
+                    Confirm         = $false
+                    Size            = $size.SizeMax
+
+                }
+
+                Resize-Partition @params
             
-           
+            }          
 
             # Install Nuget
             Install-PackageProvider -Name Nuget -MinimumVersion 2.8.5.201 -Force

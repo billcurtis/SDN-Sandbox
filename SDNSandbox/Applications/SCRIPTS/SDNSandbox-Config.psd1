@@ -60,7 +60,7 @@
     MEM_IPSEC                            = 4GB                                     # Memory provided for the ipsec-target VM
 
     #Cluster S2D Storage Disk Size (per disk)
-    S2D_Disk_Size                        = 200GB                                    # Disk size for each of the 4 dynamic VHD disks attached to the 3 SDNHOST VMs that will be used to create the SDNCLUSTER
+    S2D_Disk_Size                        = 400GB                                    # Disk size for each of the 4 dynamic VHD disks attached to the 2 SDNHOST VMs that will be used to create the SDNCLUSTER
 
 
     # SDN Host IPs
