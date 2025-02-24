@@ -24,7 +24,7 @@
     * 250gb minimum of hard drive space if a single host installation. 150GB 
       minimum of drive space per Hyper-V host if using multiple hosts.
 
-    * 256gb RAM - This can be tweaked, but this script was developed on a 256GB system,
+    * 256gb RAM - This can be tweaked, but this script was developed on a 128GB system,
 
     * If you wish the environment to have internet access, create a Hyper-V VMswitch on
        your host that maps to a NIC on a network that has internet access. 
@@ -2115,8 +2115,8 @@ function New-RouterVM {
                 Write-Verbose "Peering future MUX/GWs"
 
                 $Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "40"
-                $GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "50"
-                $GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "60"
+                $GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "2"
+                $GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "3"
 
                 $params = @{
 
@@ -2725,6 +2725,7 @@ CertificateTemplate= WebServer
             $Shortcut.TargetPath = $TargetFile
             $Shortcut.Save()
 
+
     
             # Create Shortcut for Hyper-V Manager
 
@@ -2756,6 +2757,23 @@ CertificateTemplate= WebServer
             $SENCIP = "nc." + $SDNConfig.SDNDomainFQDN    
             $SDNEXPLORER = "Set-Location 'C:\SCRIPTS\SDNExpress-Custom';.\SDNExplorer.ps1 -NCIP $SENCIP"    
             Set-Content -Value $SDNEXPLORER -Path 'C:\users\Public\Desktop\SDN Explorer.ps1' -Force
+
+            # set links to scripts and sdn examples
+            Write-Verbose "Creating Shortcut Scripts Folder"
+            $TargetFile = "C:\SCRIPTS"
+            $ShortcutFile = "C:\Users\Public\Desktop\SDN Scripts.lnk"
+            $WScriptShell = New-Object -ComObject WScript.Shell
+            $Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
+            $Shortcut.TargetPath = $TargetFile
+            $Shortcut.Save()
+
+            Write-Verbose "Creating Shortcut Scripts Folder for SDN Examples"
+            $TargetFile = "C:\SDNEXAMPLES"
+            $ShortcutFile = "C:\Users\Public\Desktop\SDN Examples.lnk"
+            $WScriptShell = New-Object -ComObject WScript.Shell
+            $Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
+            $Shortcut.TargetPath = $TargetFile
+            $Shortcut.Save()
     
             # Set Network Profiles
 

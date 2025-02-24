@@ -49,7 +49,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     # Create a Public IP Address
 
     $publicIPProperties = new-object Microsoft.Windows.NetworkController.PublicIpAddressProperties
-    $publicIPProperties.ipaddress = "40.40.40.30"
+    $publicIPProperties.ipaddress = "10.13.13.30"
     $publicIPProperties.PublicIPAllocationMethod = "static"
     $publicIPProperties.IdleTimeoutInMinutes = 4
 
@@ -64,7 +64,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     $publicIP = New-NetworkControllerPublicIpAddress @param -Force -PassInnerException
 
 
-    $nic = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid WebServerVM2_Ethernet1
+    $nic = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid WebServerVM2_Ethernet1  
     $nic.properties.IpConfigurations[0].Properties.PublicIPAddress = $publicIP
 
     $param = @{
@@ -76,6 +76,10 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     }
 
     New-NetworkControllerNetworkInterface @param -PassInnerException -Confirm:$false -Force
+
+    Write-Host "VIP is 10.13.13.30"
+    Write-Host "Now, you can externally connect to WebServerVM2 (example: \\10.13.13.30\c$) through the forwarding public VIP!"
+    Write-Host "And now you can also connect (if you provide a DNS Server) from WebServerVM2 to the internet!"
 
 
 }

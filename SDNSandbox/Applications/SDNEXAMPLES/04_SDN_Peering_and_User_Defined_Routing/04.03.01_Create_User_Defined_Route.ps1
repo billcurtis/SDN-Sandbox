@@ -1,6 +1,6 @@
 # This script requires that 01_Create_TenantVMs_Complete.ps1, 03.03_Deploy_iDNS.ps1, and 04.02_Create_Appliance_VM.ps1 were
 # successfully run from the console vm.
-# Version 1.0
+# Version 2.0
 
 <#
 .SYNOPSIS 
@@ -21,15 +21,21 @@ param(
 
 )
 
+
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "Continue"
 
 # Load in the configuration file.
-
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
-$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+
+
+if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC.$($SDNConfig.SDNDomainFQDN)"
 
 Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
 
@@ -46,7 +52,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     <#/
 Add a route to the routing table properties.
 
-Any route not in the same VM subnet (192.172.33.25) gets routed to the Appliance VM at 192.172.33.25.
+Any route not in the same VM subnet (10.0.1.0/24) gets routed to the Appliance VM at 10.0.1.6.
 The appliance must have a virtual network adapter attached to the virtual network with that IP
 assigned to a network interface.
  #>
@@ -56,7 +62,7 @@ assigned to a network interface.
     $route.properties = new-object Microsoft.Windows.NetworkController.RouteProperties
     $route.properties.AddressPrefix = "0.0.0.0/0"
     $route.properties.nextHopType = "VirtualAppliance"
-    $route.properties.nextHopIpAddress = "192.172.33.25"  #This is the appliance VM.
+    $route.properties.nextHopIpAddress = "10.0.1.6"  #This is the appliance VM Private IP.
     $routetableproperties.routes += $route
 
     #Add the Route table to Network Controller

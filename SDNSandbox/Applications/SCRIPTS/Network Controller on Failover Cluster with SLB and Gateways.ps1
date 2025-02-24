@@ -73,9 +73,9 @@ $RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
 $Mux01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "120"
 $Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "40"
 $GW01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "121"
-$GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "50"
+$GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "2"
 $GW02MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "122"
-$GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "60"
+$GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "3"
 
 
 # generate sdn data answer file

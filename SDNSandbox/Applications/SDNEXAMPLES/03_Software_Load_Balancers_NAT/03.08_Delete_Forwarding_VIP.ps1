@@ -6,8 +6,8 @@
 
     This script:
     
-     1. Creates a Public IP Address.
-     2. Attaches Public VIP to WebServerVM2's Network Interfaces.
+     1. Removes Public VIP from the network interface on WebServerVM2.
+     2. Removes the Public VIP Created in Lab 03.05.
    
 
     After running this script, follow the directions in the README.md file for this scenario.
@@ -18,7 +18,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\NestedSDN-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -30,8 +30,8 @@ $VerbosePreference = "Continue"
 
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
-$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC.$($SDNConfig.SDNDomainFQDN)"
 
 # Invoking command as some NC Commands are not working even with the latest RSAT on console. #Needtofix
 
@@ -44,28 +44,10 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
 
     $uri = $using:uri
 
-
-
-    # Create a Public IP Address
-
-    $publicIPProperties = new-object Microsoft.Windows.NetworkController.PublicIpAddressProperties
-    $publicIPProperties.ipaddress = "40.40.40.30"
-    $publicIPProperties.PublicIPAllocationMethod = "static"
-    $publicIPProperties.IdleTimeoutInMinutes = 4
-
-    $param = @{
-
-        ResourceID    = 'ForwardingIP'
-        Properties    = $publicIPProperties
-        ConnectionUri = $uri
-
-    }
-
-    $publicIP = New-NetworkControllerPublicIpAddress @param -Force -PassInnerException
-
+    # Remove the Public IP Address from Network Interface 'WebServerVM2_Ethernet1' as we cannot delete a VIP that is still in use.
 
     $nic = get-networkcontrollernetworkinterface  -connectionuri $uri -resourceid WebServerVM2_Ethernet1
-    $nic.properties.IpConfigurations[0].Properties.PublicIPAddress = $publicIP
+    $nic.properties.IpConfigurations[0].Properties.PublicIPAddress = $publicIP = $null
 
     $param = @{
 
@@ -78,6 +60,15 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     New-NetworkControllerNetworkInterface @param -PassInnerException -Confirm:$false -Force
 
 
+    # Delete the VIP
+
+    $param = @{
+
+        ConnectionUri = $uri
+        ResourceId    = 'ForwardingIP'
+
+    }
+
+    Remove-NetworkControllerPublicIpAddress @param -PassInnerException -Confirm:$false -Force
+
 }
-
-
