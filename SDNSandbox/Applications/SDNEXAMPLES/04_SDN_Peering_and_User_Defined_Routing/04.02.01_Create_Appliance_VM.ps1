@@ -1,5 +1,5 @@
 
-# Version 1.0
+# Version 2.0
 
 <#
 .SYNOPSIS 
@@ -8,7 +8,7 @@
     
      1. Creates a Single Server (Desktop Experience) VHD file for Appliance.vhdx, injects a unattend.xml
      2. Creates a Virtual Machine Named Appliance
-     3. Adds Appliance VM to the S2DCluster 
+     3. Adds Appliance VM to the SDNCluster
      4. Creates two NIC Adapters: 1 attached to the management network, 1 attached to TenantNetwork1   
 
     After running this script, follow the directions in the README.md file for this scenario.
@@ -20,7 +20,7 @@
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\NestedSDN-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
 
@@ -52,13 +52,9 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
     Write-Verbose "Copying Over VHDX file for Appliance VM. This can take some time..."
 
-    $OSver = Get-WmiObject Win32_OperatingSystem | Where-Object { $_.Name -match "Windows Server 2019" }
-
-    If ($OSVer) { $csvfolder = "S2D_vDISK1" }
-    else { $csvfolder = "Volume1" }
-
+ 
+    $csvfolder = "Volume01"
     $VMName = 'Appliance'
-
 
    
 
@@ -68,7 +64,7 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
     $gateway = $using:SDNConfig.SDNLABRoute  
     $sysIP = ($using:SDNconfig.DCIP).Replace("254", "50")
     $Domain = $using:fqdn
-    $VMName = $VMName
+
 
     Write-Verbose "Domain = $Domain"
     Write-Verbose "VMName = $VMName"
@@ -91,7 +87,7 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
     $tenantpath = New-Item @params -Force
 
-    Copy-Item -Path '\\console\C$\VHDs\GUI.vhdx' -Destination $tenantpath.FullName -Force
+    Copy-Item -Path 'C:\ClusterStorage\Volume01\VHD\GUI.VHDX' -Destination $tenantpath.FullName -Force
 
     # Inject Answer File
     Write-Verbose "Injecting Answer File for Appliance $VMName..."
@@ -108,7 +104,7 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
     $MountPath = New-Item @params -Force
 
 
-    $ImagePath = "\\sdncluster\ClusterStorage`$\$csvfolder\$VMName\GUI.vhdx"
+    $ImagePath = "\\SDNHOST1\c$\ClusterStorage\Volume01\$VMName\GUI.vhdx"
 
     $params = @{
 
@@ -236,7 +232,7 @@ Invoke-Command -ComputerName SDNHOST1 -Credential $domainCred -ScriptBlock {
 
 ping 192.0.2.1 -n 1 -w 12312 >nul
 @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
-choco install microsoft-message-analyzer -y
+choco install wireshark winpcap -y
 
 '@
 
@@ -299,7 +295,9 @@ choco install microsoft-message-analyzer -y
 
 Write-Verbose "Creating Virtual Machine"
 
-New-VM -Name Appliance -ComputerName SDNHOST1 -VHDPath C:\ClusterStorage\S2D_vDISK1\Appliance\GUI.vhdx -MemoryStartupBytes 8GB -Generation 2 | Out-Null
+New-VM -Name Appliance -ComputerName SDNHOST1 -VHDPath C:\ClusterStorage\Volume01\Appliance\GUI.vhdx `
+    -MemoryStartupBytes 8GB -Generation 2 -Path  C:\ClusterStorage\Volume01\Appliance\ | Out-Null
+
 Set-VM -Name Appliance -ComputerName SDNHOST1 -ProcessorCount 4 | Out-Null
 
 
@@ -359,14 +357,14 @@ Write-Verbose "Getting MAC Addresses of the NICs for the Appliance VM so we can 
 # Get the MACs
 $applianceMAC = (Get-VMNetworkAdapter -VMName Appliance -ComputerName SDNHOST1 | Where-Object { $_.macaddress -match '001155444444' }).MacAddress
 
-Write-Verbose " Adding VM to our SDNCLUSTER "
+Write-Verbose " Adding VM to our  SDNCluster "
 
 $VerbosePreference = "SilentlyContinue"
 Import-Module FailoverClusters
 $VerbosePreference = "Continue"
 
 
-Add-ClusterVirtualMachineRole -VMName Appliance -Cluster SDNCLUSTER | Out-Null
+Add-ClusterVirtualMachineRole -VMName Appliance -Cluster  SDNCluster | Out-Null
 
 
 
@@ -375,7 +373,7 @@ $VerbosePreference = "SilentlyContinue"
 Import-Module NetworkController
 $VerbosePreference = "Continue"
 
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
 
 
 
@@ -403,7 +401,7 @@ $vmnicproperties.IsPrimary = $true
 $ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
 $ipconfiguration.resourceid = "Appliance_IP1"
 $ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
-$ipconfiguration.properties.PrivateIPAddress = “192.172.33.25”
+$ipconfiguration.properties.PrivateIPAddress = '10.0.1.6'
 $ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
 
 
@@ -411,7 +409,7 @@ $ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkControl
 $ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
 
 $vmnicproperties.IpConfigurations = @($ipconfiguration)
-New-NetworkControllerNetworkInterface –ResourceID "Appliance_Ethernet1" –Properties $vmnicproperties –ConnectionUri $uri -Force -PassInnerException
+New-NetworkControllerNetworkInterface -ResourceID "Appliance_Ethernet1" -Properties $vmnicproperties -ConnectionUri $uri -Force -PassInnerException
 
 $nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId Appliance_Ethernet1 -PassInnerException
 
@@ -424,7 +422,7 @@ Invoke-Command -ComputerName SDNHOST1 -ArgumentList $nic -ScriptBlock {
     #The hardcoded Ids in this section are fixed values and must not change.
     $FeatureId = "9940cd46-8b06-43bb-b9d5-93d50381fd56"  # This value never changes.
  
-    $vmNic = Get-VMNetworkAdapter -VMName “Appliance” | Where-Object { $_.macaddress -match '001155444444' }
+    $vmNic = Get-VMNetworkAdapter -VMName Appliance | Where-Object { $_.macaddress -match '001155444444' }
  
     $CurrentFeature = Get-VMSwitchExtensionPortFeature -FeatureId $FeatureId -VMNetworkAdapter $vmNic
  

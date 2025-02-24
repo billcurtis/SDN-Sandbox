@@ -1,4 +1,5 @@
-﻿# Version 2.0
+
+# Version 2.0
 
 <#
 .SYNOPSIS 
@@ -8,6 +9,9 @@
      1. Creates two Windows Server (Desktop Experience) VHD files for TenantVM1 and TenantVM2, injects a unattend.xml
      2. Creates the TenantVM1 and TenantVM2 virtual machines
      3. Adds TenantVM1 and TenantVM2 to the SDNCluster
+     4. Creates a VM Network and VM Subnet in Network Controller
+     5. Creates TenantVM1 and TenantVM2 Network Interfaces in Network Controller
+     6. Sets the port profiles on TenantVM1 and TenantVM2 Interfaces
    
 
     After running this script, follow the directions in the README.md file for this scenario.
@@ -275,3 +279,180 @@ $VerbosePreference = "Continue"
 
 Add-ClusterVirtualMachineRole -VMName TenantVM1 -Cluster SDNCluster | Out-Null
 Add-ClusterVirtualMachineRole -VMName TenantVM2 -Cluster SDNCluster | Out-Null
+
+
+# Import Network Controller Module
+$VerbosePreference = "SilentlyContinue"
+Import-Module NetworkController
+$VerbosePreference = "Continue"
+
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+ 
+
+# Create VM Network in Network Controller
+Write-Verbose "Creating the VM Network vmNetwork1 in NC with a subnet named vmSubnet1"
+
+#Find the HNV Provider Logical Network 
+
+$VMNetworkName = "TenantNetwork1"
+$VMSubnetName = "TenantSubnet1"
+$VMNetworkPrefix = '10.0.0.0/16' 
+$VMSubnetPrefix = '10.0.1.0/24'
+
+$logicalnetworks = Get-NetworkControllerLogicalNetwork -ConnectionUri $uri -Credential $domainCred
+foreach ($ln in $logicalnetworks) {  
+    if ($ln.Properties.NetworkVirtualizationEnabled -eq "True") {  
+        $HNVProviderLogicalNetwork = $ln  
+    }  
+}   
+
+ 
+
+#Create the Virtual Subnet
+
+Write-Verbose "Creating the Virtual Subnet $VMSubnetName"
+
+$vsubnet = new-object Microsoft.Windows.NetworkController.VirtualSubnet  
+$vsubnet.ResourceId = $VMSubnetName  
+$vsubnet.Properties = new-object Microsoft.Windows.NetworkController.VirtualSubnetProperties  
+#$vsubnet.Properties.AccessControlList = $acllist  
+$vsubnet.Properties.AddressPrefix = $VMSubnetPrefix  
+
+#Create the Virtual Network  
+
+Write-Verbose "Creating the Virtual Network $VMNetworkName"
+
+$vnetproperties = new-object Microsoft.Windows.NetworkController.VirtualNetworkProperties  
+$vnetproperties.AddressSpace = new-object Microsoft.Windows.NetworkController.AddressSpace  
+$vnetproperties.AddressSpace.AddressPrefixes = @($VMNetworkPrefix)  
+$vnetproperties.LogicalNetwork = $HNVProviderLogicalNetwork  
+$vnetproperties.Subnets = @($vsubnet)  
+New-NetworkControllerVirtualNetwork -ResourceId $VMNetworkName -ConnectionUri $uri -Properties $vnetproperties -Credential $domainCred -Force
+
+
+# Add Network Interface Object for TenantVM1 in Nework Controller
+
+Write-Verbose "Creating a Network Interface Object for TenantVM1 in NC"
+
+$VMSubnetRef = (Get-NetworkControllerVirtualNetwork -ResourceId $VMNetworkName -ConnectionUri $uri).Properties.Subnets.ResourceRef
+
+$vmnicproperties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceProperties
+$vmnicproperties.PrivateMacAddress = $TenantVM1Mac
+$vmnicproperties.PrivateMacAllocationMethod = "Static" 
+$vmnicproperties.IsPrimary = $true 
+
+$ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
+$ipconfiguration.resourceid = "TenantVM1_IP1"
+$ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
+$ipconfiguration.properties.PrivateIPAddress = "10.0.1.4"
+$ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
+
+
+$ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkController.Subnet
+$ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
+
+$vmnicproperties.IpConfigurations = @($ipconfiguration)
+New-NetworkControllerNetworkInterface -ResourceID "TenantVM1_Ethernet1" -Properties $vmnicproperties -ConnectionUri $uri -Credential $domainCred -Force
+
+$nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId TenantVM1_Ethernet1 -Credential $domainCred
+
+Write-Verbose "Invoking command on the SDNHost1 where TenantVM1 resides. Command will set the VFP extension so TenantVM1 will have access to the network."
+
+Invoke-Command -ComputerName SDNHost2 -ArgumentList $nic -ScriptBlock {
+
+    $nic = $args[0]
+
+    #The hardcoded Ids in this section are fixed values and must not change.
+    $FeatureId = "9940cd46-8b06-43bb-b9d5-93d50381fd56"  # This value never changes.
+ 
+    $vmNic = Get-VMNetworkAdapter -VMName TenantVM1
+ 
+    $CurrentFeature = Get-VMSwitchExtensionPortFeature -FeatureId $FeatureId -VMNetworkAdapter $vmNic
+ 
+    if ($CurrentFeature -eq $null) {
+        $Feature = Get-VMSystemSwitchExtensionPortFeature -FeatureId $FeatureId
+ 
+        $Feature.SettingData.ProfileId = "{$($nic.InstanceId)}"
+        $Feature.SettingData.NetCfgInstanceId = "{00000000-0000-0000-0000-000000000000}" # This instance ID never changes.
+        $Feature.SettingData.CdnLabelString = "Microsoft"
+        $Feature.SettingData.CdnLabelId = 0
+        $Feature.SettingData.ProfileName = "Microsoft SDN Port"
+        $Feature.SettingData.VendorId = "{1FA41B39-B444-4E43-B35A-E1F7985FD548}"  # This vendor id never changes.
+        $Feature.SettingData.VendorName = "NetworkController"
+        $Feature.SettingData.ProfileData = 1
+ 
+        Add-VMSwitchExtensionPortFeature -VMSwitchExtensionFeature  $Feature -VMNetworkAdapter $vmNic
+    }
+    else {
+        $CurrentFeature.SettingData.ProfileId = "{$($nic.InstanceId)}"
+        $CurrentFeature.SettingData.ProfileData = 1
+ 
+        Set-VMSwitchExtensionPortFeature -VMSwitchExtensionFeature $CurrentFeature  -VMNetworkAdapter $vmNic
+    }
+}
+
+
+
+# Add Network Interface Object for TenantVM2 in Network Controller
+
+Write-Verbose "Creating a Network Interface Object for TenantVM2 in NC"
+
+$VMSubnetRef = (Get-NetworkControllerVirtualNetwork -ResourceId $VMNetworkName -ConnectionUri $uri -Credential $domainCred).Properties.Subnets.ResourceRef
+
+$vmnicproperties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceProperties
+$vmnicproperties.PrivateMacAddress = $TenantVM2Mac
+$vmnicproperties.PrivateMacAllocationMethod = "Static" 
+$vmnicproperties.IsPrimary = $true 
+
+$ipconfiguration = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfiguration
+$ipconfiguration.resourceid = "TenantVM2_IP1"
+$ipconfiguration.properties = new-object Microsoft.Windows.NetworkController.NetworkInterfaceIpConfigurationProperties
+$ipconfiguration.properties.PrivateIPAddress = "10.0.1.5"
+$ipconfiguration.properties.PrivateIPAllocationMethod = "Static"
+#$ipconfiguration.Properties.AccessControlList = $acllist
+
+$ipconfiguration.properties.Subnet = new-object Microsoft.Windows.NetworkController.Subnet
+$ipconfiguration.properties.subnet.ResourceRef = $VMSubnetRef
+
+$vmnicproperties.IpConfigurations = @($ipconfiguration)
+New-NetworkControllerNetworkInterface -ResourceID "TenantVM2_Ethernet1" -Properties $vmnicproperties -ConnectionUri $uri -Credential $domainCred -Force 
+
+$nic = Get-NetworkControllerNetworkInterface -ConnectionUri $uri -ResourceId TenantVM2_Ethernet1 -Credential $domainCred
+
+Write-Verbose "Invoking command on the SDNHost1 where TenantVM2 resides. Command will set the VFP extension so TenantVM2 will have access to the network."
+
+Invoke-Command -ComputerName SDNHost1 -ArgumentList $nic -ScriptBlock {
+
+    $nic = $args[0]
+
+    #The hardcoded Ids in this section are fixed values and must not change.
+    $FeatureId = "9940cd46-8b06-43bb-b9d5-93d50381fd56"
+ 
+    $vmNic = Get-VMNetworkAdapter -VMName TenantVM2
+ 
+    $CurrentFeature = Get-VMSwitchExtensionPortFeature -FeatureId $FeatureId -VMNetworkAdapter $vmNic
+ 
+    if ($CurrentFeature -eq $null) {
+        $Feature = Get-VMSystemSwitchExtensionPortFeature -FeatureId $FeatureId
+ 
+        $Feature.SettingData.ProfileId = "{$($nic.InstanceId)}"
+        $Feature.SettingData.NetCfgInstanceId = "{00000000-0000-0000-0000-000000000000}"
+        $Feature.SettingData.CdnLabelString = "Microsoft"
+        $Feature.SettingData.CdnLabelId = 0
+        $Feature.SettingData.ProfileName = "Microsoft SDN Port"
+        $Feature.SettingData.VendorId = "{1FA41B39-B444-4E43-B35A-E1F7985FD548}"
+        $Feature.SettingData.VendorName = "NetworkController"
+        $Feature.SettingData.ProfileData = 1
+ 
+        Add-VMSwitchExtensionPortFeature -VMSwitchExtensionFeature  $Feature -VMNetworkAdapter $vmNic
+    }
+    else {
+        $CurrentFeature.SettingData.ProfileId = "{$($nic.InstanceId)}"
+        $CurrentFeature.SettingData.ProfileData = 1
+ 
+        Set-VMSwitchExtensionPortFeature -VMSwitchExtensionFeature $CurrentFeature  -VMNetworkAdapter $vmNic
+    }
+}
+
+
+Write-Verbose "All done. TenantVM1 and TenantVM2 should be able to talk to one another."

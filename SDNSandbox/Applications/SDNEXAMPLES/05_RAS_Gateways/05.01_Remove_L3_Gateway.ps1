@@ -83,7 +83,7 @@ Write-Verbose "Removing route for TenantNetwork1 from the BGP-ToR-Router virtual
 
 Invoke-Command -ComputerName ($SDNConfig.BGPRouterIP_MGMT.Split("/")[0]) -ScriptBlock {
 
-    Remove-NetRoute -DestinationPrefix 192.172.33.0/24 -Confirm:$false
+    Remove-NetRoute -DestinationPrefix 10.0.1.0/24 -Confirm:$false
 
 
 } -Credential $localCred

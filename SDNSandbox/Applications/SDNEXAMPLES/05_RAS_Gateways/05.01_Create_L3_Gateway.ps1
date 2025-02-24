@@ -24,7 +24,7 @@
     I have tried to comment as much as possible in this script on the parameters network controller requires
     in order to create a L3 connection. 
 
-    To remove this configuration, run the Destroy-L3_sample.ps1 script. 
+    To remove this configuration, run the Remove_L3_Gateway.ps1 script. 
 
 #>
 
@@ -80,19 +80,19 @@ $vmNetworkEndpoint = "192.168.200.254/24"          <# This is the IP Address on 
 ########
 # These are the routes that ONLY will be routable OUT of the VM Nework through the L3 Gateway
 
-$ipv4RouteDestPrefixes = @("192.168.1.0/24")      # This is the route for the Management Network.
+$ipv4RouteDestPrefixes = @("0.0.0.0/0")      # This is the route for the Management Network.
 
 
 # BGP
 #####
 
-$configureBGP = $true                               # Specifies whether or not to configure BGP for the L3 Connection in this sample.
+$configureBGP = $false                              # Specifies whether or not to configure BGP for the L3 Connection in this sample.
 $intBGPASN = "64513"                                # This BGP ASN is the BGP Router the ASN of the L3 Connection.
 $intBGPName = "L3BGP"                               # This is a string name value to assign as the Resource ID for the L3 BGP Router Peering Connection. This can be any string.
 $intBGPResourceID = "BgpRouterL3"                   # This is a string name value to assign as the Resource ID for the L3 BGP Router. This can be any string.
 $extBGPASN = "65533"                                # THis BGP ASN is the ASN for the BGP Router the L3 Connection will connect to. In this example, it is the BGP Router on the ADMINCENTER VM.
 $extBGPIP = "192.168.1.9"                           # This IP address is the address of the BGP Router that the L3 connection will peer with.
-$bgpRouterID = "192.168.200.254"                    # IP Address from the VM Network that the Gateway is using to bridge between the VM Network and the L3 Connection.
+$bgpRouterID = "10.0.1.6"                           # IP Address from the VM Network that the Gateway is using to bridge between the VM Network and the L3 Connection.
 
 
 #########################

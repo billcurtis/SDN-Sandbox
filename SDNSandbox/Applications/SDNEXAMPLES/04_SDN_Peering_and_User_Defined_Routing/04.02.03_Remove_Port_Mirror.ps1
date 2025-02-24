@@ -13,24 +13,30 @@
     After running this script, follow the directions in the README.md file for this scenario.
 #>
 
+
 [CmdletBinding(DefaultParameterSetName = "NoParameters")]
 
 param(
 
     [Parameter(Mandatory = $true, ParameterSetName = "ConfigurationFile")]
-    [String] $ConfigurationDataFile = 'C:\SCRIPTS\AzSHCISandbox-Config.psd1'
+    [String] $ConfigurationDataFile = 'C:\SCRIPTS\SDNSandbox-Config.psd1'
 
 )
+
 
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "Continue"
 
 # Load in the configuration file.
-
 $SDNConfig = Import-PowerShellDataFile $ConfigurationDataFile
 if (!$SDNConfig) { Throw "Place Configuration File in the root of the scripts folder or specify the path to the Configuration file." }
-$uri = "https://NC01.$($SDNConfig.SDNDomainFQDN)"
-$networkcontroller = "NC01.$($SDNConfig.SDNDomainFQDN)"
+
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+
+
+$uri = "https://NC.$($SDNConfig.SDNDomainFQDN)"
+$networkcontroller = "NC.$($SDNConfig.SDNDomainFQDN)"
 
 Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
 
