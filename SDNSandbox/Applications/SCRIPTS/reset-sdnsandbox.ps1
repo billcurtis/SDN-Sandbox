@@ -121,11 +121,13 @@ Remove-Item '\\sdnhost1\C$\ClusterStorage\Volume01\VHD' -Recurse -ErrorAction Si
 
 foreach ($SDNHOST in $SDNHOSTS) {
     Invoke-Command -ComputerName $SDNHOST -ScriptBlock {
+
         Remove-ItemProperty -path 'HKLM:\SYSTEM\CurrentControlSet\Services\NcHostAgent\Parameters\' -Name Connections  -ErrorAction SilentlyContinue
         Remove-ItemProperty -path 'HKLM:\SYSTEM\CurrentControlSet\Services\NcHostAgent\Parameters\' -Name NetworkControllerNodeNames -ErrorAction SilentlyContinue
         Uninstall-WindowsFeature -Name NetworkController -IncludeManagementTools -ErrorAction SilentlyContinue
         Uninstall-WindowsFeature -Name NetworkVirtualization -ErrorAction SilentlyContinue
         Disable-VMSwitchExtension -VMSwitchName "sdnSwitch" -Name "Microsoft Azure VFP Switch Extension" 
+        Uninstall-Module SDNExpress -ErrorAction SilentlyContinue
         Write-Verbose -Message "Restarting $($using:sdnhost)"
         Restart-Computer -Force -Confirm:$false
 
