@@ -192,7 +192,7 @@ Invoke-Command -ComputerName $networkcontroller -ScriptBlock {
     # Get Public IP Address Assigned
 
     $assignedIP = (Get-NetworkControllerPublicIpAddress -ResourceId WEBLB-IP -ConnectionUri $uri).properties.ipaddress
-    Write-Host "Your VIP for your WEBServer is http://$($assignedIP)" -ForegroundColor Green
+    Write-Host "Your VIP for your Loadbalancer is http://$($assignedIP)" -ForegroundColor Green
     
 
 }
