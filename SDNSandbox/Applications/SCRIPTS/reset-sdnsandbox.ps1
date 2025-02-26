@@ -33,10 +33,11 @@ $localCred = new-object -typename System.Management.Automation.PSCredential `
 
 $NCVMs = @("GW01,GW02", "Mux01", "NC")
 $SDNHOSTS = @("SDNHOST1", "SDNHOST2")
-
+$RestName = "nc.$($SDNConfig.SDNDomainFQDN)"
 
 # Remove all VM Cluster roles
 Write-Host -Message "Removing all VM Cluster Resources from SDNCLUSTER"
+Get-ClusterGroup -Cluster SDNCLUSTER | Where-Object { $_.GroupType -eq "GenericService" } | Stop-ClusterGroup
 Get-ClusterGroup -Cluster SDNCLUSTER | Where-Object { $_.GroupType -eq "VirtualMachine" } | Remove-ClusterGroup -Force -Confirm:$false -RemoveResources
 
 # Remove All VMs
@@ -109,23 +110,27 @@ Invoke-Command -ComputerName $SDNHOSTS[0] -ScriptBlock {
     }
 
     Get-PSSessionConfiguration -Name microsoft.sdnUnInstall | Unregister-PSSessionConfiguration -Force
+    Get-ChildItem -Path 'C:\ClusterStorage\Volume01\' -Directory -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item $_.FullName -Recurse -Force }
     Stop-Cluster -Force -Confirm:$false
 
 }
 $ErrorActionPreference = "Continue"
 
-
-# Delete SDN and VHD Directories
-Remove-Item '\\sdnhost1\C$\ClusterStorage\Volume01\SDN' -Recurse -ErrorAction SilentlyContinue
-Remove-Item '\\sdnhost1\C$\ClusterStorage\Volume01\VHD' -Recurse -ErrorAction SilentlyContinue
+ 
+ 
 
 foreach ($SDNHOST in $SDNHOSTS) {
     Invoke-Command -ComputerName $SDNHOST -ScriptBlock {
+
+        Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.Subject -match $Using:RestName } | Remove-Item
+        Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -match $Using:RestName } | Remove-Item
+        Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -match "Mux" } | Remove-Item
         Remove-ItemProperty -path 'HKLM:\SYSTEM\CurrentControlSet\Services\NcHostAgent\Parameters\' -Name Connections  -ErrorAction SilentlyContinue
         Remove-ItemProperty -path 'HKLM:\SYSTEM\CurrentControlSet\Services\NcHostAgent\Parameters\' -Name NetworkControllerNodeNames -ErrorAction SilentlyContinue
         Uninstall-WindowsFeature -Name NetworkController -IncludeManagementTools -ErrorAction SilentlyContinue
         Uninstall-WindowsFeature -Name NetworkVirtualization -ErrorAction SilentlyContinue
         Disable-VMSwitchExtension -VMSwitchName "sdnSwitch" -Name "Microsoft Azure VFP Switch Extension" 
+        Uninstall-Module SDNExpress -ErrorAction SilentlyContinue
         Write-Verbose -Message "Restarting $($using:sdnhost)"
         Restart-Computer -Force -Confirm:$false
 
@@ -156,9 +161,8 @@ $ErrorActionPreference = "Continue"
 
 Write-Verbose -Message "Removing NC Certificate from AdminCenter VM - Confirmation Dialog may be behind screen."
 $RestName = "nc.$($SDNConfig.SDNDomainFQDN)"
-$cert = Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Subject -match $RestName }
-$expression = "echo Y | CertUtil -delstore -f -user Root $($cert.Thumbprint)"
-Invoke-Expression -Command $expression
+Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Subject -match $RestName } | Remove-Item
+
 
 
 Write-Host "Please wait a few minutes before redeploying SDN to let the cluster nodes reboot."
