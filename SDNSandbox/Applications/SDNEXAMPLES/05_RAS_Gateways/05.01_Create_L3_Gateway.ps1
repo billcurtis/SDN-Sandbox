@@ -335,6 +335,25 @@ Invoke-Command -ComputerName $routerIP -Credential $localCred  -ScriptBlock {
 
 }
 
+
+# Set the Route on SDNMGMT to go back to 10.0.1.0/24...you know...for the internet.
+
+Write-Verbose -Message "Adding Route to SDNMGMT so you can get out to the internet on the L3 connection."
+Invoke-Command -ComputerName ($SDNConfig.SDNMGMTIP).TrimEnd("/24") -Credential $localCred -ScriptBlock {
+
+$vlan200 = Get-NetAdapter -Name VLAN200
+
+New-NetRoute -DestinationPrefix 10.0.1.0/24 `
+-InterfaceIndex $vlan200.ifIndex `
+-NextHop 192.168.200.1 `
+-AddressFamily IPv4
+
+
+}
+
+
+
+
 if ($configureBGP) {
 
     <# 

@@ -83,7 +83,17 @@ Write-Verbose "Removing route for TenantNetwork1 from the BGP-ToR-Router virtual
 
 Invoke-Command -ComputerName ($SDNConfig.BGPRouterIP_MGMT.Split("/")[0]) -ScriptBlock {
 
-    Remove-NetRoute -DestinationPrefix 10.0.1.0/24 -Confirm:$false
+    Remove-NetRoute -DestinationPrefix 10.0.1.0/24 -Confirm:$false -ErrorAction SilentlyContinue
 
 
 } -Credential $localCred
+
+# Clear VLAN 200 ROute on SDNMGMT Router
+
+Write-Verbose -Message "Removing Route on SDNMGMT "
+Invoke-Command -ComputerName ($SDNConfig.SDNMGMTIP).TrimEnd("/24") -Credential $localCred -ScriptBlock {
+
+Get-NetRoute "10.0.1.0/24" | Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue
+
+
+}
