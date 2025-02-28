@@ -485,7 +485,7 @@ if ($configureBGP) {
 
     }
 
-    $bgpPeerStatus = NetworkControllerVirtualGatewayBgpPeer @params
+    $bgpPeerStatus = Get-NetworkControllerVirtualGatewayBgpPeer @params
 
     Write-Host "`n`nBGP Peer $($bgpPeerStatus.ResourceId) Status" -ForegroundColor Yellow
     Write-Host "`nBGP Peer $($bgpPeerStatus.ResourceId)'s Provisioning State: $($bgpPeerStatus.Properties.ProvisioningState)"
