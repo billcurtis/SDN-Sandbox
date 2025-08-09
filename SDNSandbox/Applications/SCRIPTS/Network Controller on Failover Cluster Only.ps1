@@ -58,7 +58,11 @@ $RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
 # Copy core vhd to SDN folder
 # To do later....not necessary for this script.
 
+$ErrorActionPreference = "Continue"
+
 Invoke-Command -ComputerName SDNHOST1 -ScriptBlock {
+
+$ErrorActionPreference = "Continue"
 
 $SDNConfig = $using:SDNConfig
 $domainUserName = ($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\administrator"
@@ -73,7 +77,7 @@ $RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
 # generate sdn data answer file
 $sdndata = "
 @{
-    ScriptVersion        = '4.0'
+    ScriptVersion        = '4.2'
     UseFCNC	= 1
     FCNCDBs = 'C:\ClusterStorage\Volume01\SDN'
     VHDPath              = 'C:\ClusterStorage\Volume01\vhd'
@@ -91,6 +95,8 @@ $sdndata = "
     NCUsername           = '$domainUserName'
     RestName             =  '$($RestName)'
     RestIpAddress        =  '$($RestIPAddress)'
+    UseCertBySubject = 1
+    IsSiteAware = `$false
     NCs = @()
     Muxes = @()
     Gateways = @()

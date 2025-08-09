@@ -43,8 +43,8 @@ Set-ADComputer -Identity (Get-ADComputer SDNHOST2) -PrincipalsAllowedToDelegateT
 # create folders
 Invoke-Command -ComputerName SDNHOST1 -ScriptBlock {
 
-New-Item -Path 'C:\ClusterStorage\Volume01\' -Name VHD -ItemType Directory -Force | Out-Null
-New-Item -Path 'C:\ClusterStorage\Volume01\' -Name SDN -ItemType Directory -Force | Out-Null
+    New-Item -Path 'C:\ClusterStorage\Volume01\' -Name VHD -ItemType Directory -Force | Out-Null
+    New-Item -Path 'C:\ClusterStorage\Volume01\' -Name SDN -ItemType Directory -Force | Out-Null
 
 
 } -Credential $domainCred
@@ -59,29 +59,32 @@ $RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
 Write-Verbose -Message "Copying core.vhdx"
 Copy-Item -Path C:\VHDs\core.vhdx -Destination '\\SDNCluster\ClusterStorage$\Volume01\VHD' -Force | Out-Null
 
+$ErrorActionPreference = "Continue"
 
 Invoke-Command -ComputerName SDNHOST1 -ScriptBlock {
 
-$SDNConfig = $using:SDNConfig
-$domainUserName = ($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\administrator"
-$paGateway = ($SDNConfig.ProviderSubnet).TrimEnd("0/24") + "1"
-$paPoolStart = ($SDNConfig.ProviderSubnet).TrimEnd("0/24") + "2"
-$paPoolEnd = ($SDNConfig.ProviderSubnet).TrimEnd("0/24") + "200"
-$BGPRouterIP = ($SDNConfig.BGPRouterIP_ProviderNetwork.Split("/")[0])
-$RestName = "nc.$($SDNConfig.SDNDomainFQDN)"
-$RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
-$Mux01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "120"
-$Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "40"
-$GW01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "121"
-$GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "2"
-$GW02MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "122"
-$GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "3"
+    $ErrorActionPreference = "Continue"
+
+    $SDNConfig = $using:SDNConfig
+    $domainUserName = ($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\administrator"
+    $paGateway = ($SDNConfig.ProviderSubnet).TrimEnd("0/24") + "1"
+    $paPoolStart = ($SDNConfig.ProviderSubnet).TrimEnd("0/24") + "2"
+    $paPoolEnd = ($SDNConfig.ProviderSubnet).TrimEnd("0/24") + "200"
+    $BGPRouterIP = ($SDNConfig.BGPRouterIP_ProviderNetwork.Split("/")[0])
+    $RestName = "nc.$($SDNConfig.SDNDomainFQDN)"
+    $RestIPAddress = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "110/24"
+    $Mux01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "120"
+    $Mux01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "40"
+    $GW01MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "121"
+    $GW01IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "2"
+    $GW02MgmtIP = ($SDNConfig.MGMTSubnet).TrimEnd("0/24") + "122"
+    $GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "3"
 
 
-# generate sdn data answer file
-$sdndata = "
+    # generate sdn data answer file
+    $sdndata = "
 @{
-    ScriptVersion        = '4.0'
+    ScriptVersion        = '4.2'
     UseFCNC	= 1
     FCNCDBs = 'C:\ClusterStorage\Volume01\SDN'
     VHDPath              = 'C:\ClusterStorage\Volume01\vhd'
@@ -99,6 +102,8 @@ $sdndata = "
     NCUsername           = '$domainUserName'
     RestName             =  '$($RestName)'
     RestIpAddress        =  '$($RestIPAddress)'
+    UseCertBySubject = 1
+    IsSiteAware = `$false
     NCs = @()
     Muxes = @(
     @{ComputerName='Mux01'; HostName='SDNHOST1'; ManagementIP='$Mux01MgmtIP'; PAIPAddress='$Mux01IP'}
@@ -141,73 +146,73 @@ $sdndata = "
 }
 "
 
-$sdndata | Set-Content -Path C:\ClusterStorage\Volume01\SDN\sdndata.psd1 -Force
+    $sdndata | Set-Content -Path C:\ClusterStorage\Volume01\SDN\sdndata.psd1 -Force
 
-# set cred objects
-$domainCred = new-object -typename System.Management.Automation.PSCredential `
-    -argumentlist (($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\administrator"), `
-(ConvertTo-SecureString $SDNConfig.SDNAdminPassword -AsPlainText -Force)
+    # set cred objects
+    $domainCred = new-object -typename System.Management.Automation.PSCredential `
+        -argumentlist (($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\administrator"), `
+    (ConvertTo-SecureString $SDNConfig.SDNAdminPassword -AsPlainText -Force)
 
-$localCred = new-object -typename System.Management.Automation.PSCredential `
-    -argumentlist ("administrator"), `
-(ConvertTo-SecureString $SDNConfig.SDNAdminPassword -AsPlainText -Force)
+    $localCred = new-object -typename System.Management.Automation.PSCredential `
+        -argumentlist ("administrator"), `
+    (ConvertTo-SecureString $SDNConfig.SDNAdminPassword -AsPlainText -Force)
 
 
-# new config to avoid double hop - which I SHOULD NOT HAVE TO DO!!!!
+    # new config to avoid double hop - which I SHOULD NOT HAVE TO DO!!!!
 
-  $params = @{
+    $params = @{
 
-                Name                                = 'microsoft.SDNInstall'
-                RunAsCredential                     = $Using:domainCred 
-                MaximumReceivedDataSizePerCommandMB = 1000
-                MaximumReceivedObjectSizeMB         = 1000
-            }
+        Name                                = 'microsoft.SDNInstall'
+        RunAsCredential                     = $Using:domainCred 
+        MaximumReceivedDataSizePerCommandMB = 1000
+        MaximumReceivedObjectSizeMB         = 1000
+    }
 
-            $VerbosePreference = "SilentlyContinue"            
-            Register-PSSessionConfiguration @params
-            $VerbosePreference = "Continue"
+    $VerbosePreference = "SilentlyContinue"            
+    Register-PSSessionConfiguration @params
+    $VerbosePreference = "Continue"
 
-Invoke-Command -ComputerName SDNHOST1 `
--Credential $domainCred `
--ConfigurationName microsoft.SDNInstall `
--ArgumentList $domainCred, $localCred `
--ScriptBlock {
+    Invoke-Command -ComputerName SDNHOST1 `
+        -Credential $domainCred `
+        -ConfigurationName microsoft.SDNInstall `
+        -ArgumentList $domainCred, $localCred `
+        -ScriptBlock {
 
-$domainCred = $args[0]
-$localCred = $args[1]
+        $domainCred = $args[0]
+        $localCred = $args[1]
 
-# Install Nuget
-Install-PackageProvider -Name Nuget -MinimumVersion 2.8.5.201 -Force
+        # Install Nuget
+        Install-PackageProvider -Name Nuget -MinimumVersion 2.8.5.201 -Force
 
-# install sdnexpress cmdlets
-Install-Module SdnExpress -Confirm:$false -Force
-Import-Module SdnExpress
+        # install sdnexpress cmdlets
+        Install-Module SdnExpress -Confirm:$false -Force
+        Import-Module SdnExpress
 
-# set location to folder
-$scriptdir = (Get-ChildItem 'C:\Program Files\WindowsPowerShell\Modules\SdnExpress').Name
-Set-Location -Path "C:\Program Files\WindowsPowerShell\Modules\SdnExpress\$scriptdir"
+        # set location to folder
+        $scriptdir = (Get-ChildItem 'C:\Program Files\WindowsPowerShell\Modules\SdnExpress').Name
+        Set-Location -Path "C:\Program Files\WindowsPowerShell\Modules\SdnExpress\$scriptdir"
 
-# run sdn install
+        # run sdn install
 
-$params = @{
+        $params = @{
 
-ConfigurationDataFile = 'C:\ClusterStorage\Volume01\SDN\sdndata.psd1'
-DomainJoinCredential = $domainCred
-NCCredential = $domainCred
-LocalAdminCredential = $localCred
+            ConfigurationDataFile = 'C:\ClusterStorage\Volume01\SDN\sdndata.psd1'
+            DomainJoinCredential  = $domainCred
+            NCCredential          = $domainCred
+            LocalAdminCredential  = $localCred
 
-}
+        }
 
-.\SDNExpress.ps1 @params
+        .\SDNExpress.ps1 @params
 
-}
+    }
 
-Get-PSSessionConfiguration -Name microsoft.sdnInstall | Unregister-PSSessionConfiguration -Force
+    Get-PSSessionConfiguration -Name microsoft.sdnInstall | Unregister-PSSessionConfiguration -Force
 
-# Export Certificate
+    # Export Certificate
 
-$expcert = Get-ChildItem Cert:\LocalMachine\My | Where-Object {$_.Subject -match $RestName}
-Export-Certificate -Cert $expcert -FilePath 'C:\ClusterStorage\Volume01\SDN\nccert.cer'
+    $expcert = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.Subject -match $RestName }
+    Export-Certificate -Cert $expcert -FilePath 'C:\ClusterStorage\Volume01\SDN\nccert.cer'
 
 } -Credential $domainCred
 
@@ -216,7 +221,7 @@ Export-Certificate -Cert $expcert -FilePath 'C:\ClusterStorage\Volume01\SDN\ncce
 
 Write-Verbose -Message "Importing NC Certificate into Admincenter VM"
 $params = @{
-    FilePath = '\\sdnhost1\C$\ClusterStorage\Volume01\SDN\nccert.cer'
+    FilePath          = '\\sdnhost1\C$\ClusterStorage\Volume01\SDN\nccert.cer'
     CertStoreLocation = 'Cert:\CurrentUser\Root'
 }
 Import-Certificate @params -Confirm:$false 
@@ -226,10 +231,10 @@ Import-Certificate @params -Confirm:$false
 
 $params = @{
 
-ComputerName = $SDNConfig.DCName
-Name = "nc"
-ZoneName = $FQDN
-IPV4Address = ($RestIPAddress.TrimEnd("/24"))
+    ComputerName = $SDNConfig.DCName
+    Name         = "nc"
+    ZoneName     = $FQDN
+    IPV4Address  = ($RestIPAddress.TrimEnd("/24"))
 
 }
 

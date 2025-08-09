@@ -65,7 +65,11 @@ Add-DnsServerResourceRecordA @params
 Write-Verbose -Message "Copying core.vhdx"
 Copy-Item -Path "C:\VHDs\CORE.vhdx" -Destination '\\SDNCluster\ClusterStorage$\Volume01\VHD' -Force | Out-Null
 
+$ErrorActionPreference = "Continue"
+
 Invoke-Command -ComputerName SDNHOST1 -ScriptBlock {
+
+$ErrorActionPreference = "Continue"
 
 $SDNConfig = $using:SDNConfig
 $domainUserName = ($SDNConfig.SDNDomainFQDN.Split(".")[0]) + "\administrator"
@@ -89,7 +93,7 @@ $GW02IP = ($SDNConfig.BGPRouterIP_ProviderNetwork.TrimEnd("1/24")) + "60"
 # generate sdn data answer file
 $sdndata = "
 @{
-    ScriptVersion        = '4.0'
+    ScriptVersion        = '4.2'
     UseFCNC	= 0
     FCNCDBs = 'C:\ClusterStorage\Volume01\SDN'
     VHDPath              = 'C:\ClusterStorage\Volume01\vhd'
@@ -107,6 +111,9 @@ $sdndata = "
     NCUsername           = '$domainUserName'
     RestName             =  '$($RestName)'
     RestIpAddress        =  '$($RestIPAddress)'
+    UseCertBySubject = 1
+    IsSiteAware = `$false
+
     NCs = @(
     @{ComputerName='NC01'; HostName='SDNHOST1'; ManagementIP='$NC01Address'}
     )
